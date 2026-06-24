@@ -1,0 +1,67 @@
+substitutions:
+  _AR_HOSTNAME: us-central1-docker.pkg.dev
+  _AR_PROJECT_ID: caldas-projects-dev
+  _AR_REPOSITORY: cloud-run-source-deploy
+  _DEPLOY_REGION: us-central1
+  _SERVICE_NAME: passanota-web
+  _PASSANOTA_API_URL: ""
+  _SUPABASE_URL: ""
+  _SUPABASE_PUBLISHABLE_KEY: ""
+  _APP_URL: ""
+  _MIN_INSTANCES: "0"
+
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        if [ -z "${_SUPABASE_URL}" ] || [ -z "${_SUPABASE_PUBLISHABLE_KEY}" ] || [ -z "${_APP_URL}" ]; then
+          echo "ERROR: configure _SUPABASE_URL, _SUPABASE_PUBLISHABLE_KEY e _APP_URL no trigger."
+          exit 1
+        fi
+        docker build \
+          --no-cache \
+          -t ${_AR_HOSTNAME}/${_AR_PROJECT_ID}/${_AR_REPOSITORY}/$REPO_NAME/${_SERVICE_NAME}:$COMMIT_SHA \
+          -f Dockerfile \
+          --build-arg NEXT_PUBLIC_SUPABASE_URL="${_SUPABASE_URL}" \
+          --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="${_SUPABASE_PUBLISHABLE_KEY}" \
+          --build-arg NEXT_PUBLIC_APP_URL="${_APP_URL}" \
+          .
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_AR_HOSTNAME}/${_AR_PROJECT_ID}/${_AR_REPOSITORY}/$REPO_NAME/${_SERVICE_NAME}:$COMMIT_SHA
+    waitFor: [build]
+
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - services
+      - update
+      - ${_SERVICE_NAME}
+      - --platform=managed
+      - --image=${_AR_HOSTNAME}/${_AR_PROJECT_ID}/${_AR_REPOSITORY}/$REPO_NAME/${_SERVICE_NAME}:$COMMIT_SHA
+      - --region=${_DEPLOY_REGION}
+      - --update-env-vars
+      - ^|^NODE_ENV=production|PASSANOTA_API_URL=${_PASSANOTA_API_URL}|SUPABASE_URL=${_SUPABASE_URL}|NEXT_PUBLIC_SUPABASE_URL=${_SUPABASE_URL}|NEXT_PUBLIC_APP_URL=${_APP_URL}|NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${_SUPABASE_PUBLISHABLE_KEY}|SUPABASE_PUBLISHABLE_KEY=${_SUPABASE_PUBLISHABLE_KEY}
+      - --quiet
+    waitFor: [push]
+
+images:
+  - ${_AR_HOSTNAME}/${_AR_PROJECT_ID}/${_AR_REPOSITORY}/$REPO_NAME/${_SERVICE_NAME}:$COMMIT_SHA
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  substitutionOption: ALLOW_LOOSE
+
+tags:
+  - gcp-cloud-build-deploy-cloud-run
+  - gcp-cloud-build-deploy-cloud-run-managed
+  - passanota-web

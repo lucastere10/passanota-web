@@ -32,6 +32,28 @@ O secret `PASSANOTA_SUPABASE_PUBLISHABLE_KEY` é **opcional** — use só se pre
 
 ## Cloud Build via GitHub
 
+### Trigger gerenciado do Cloud Run (`gcp-cloud-build-deploy-cloud-run`)
+
+Se o deploy foi criado pelo console **Cloud Run → Continuous deployment**, o Google gera um build inline que roda só `docker build .` **sem** passar as substitutions como `--build-arg`. As variáveis `_SUPABASE_URL` etc. ficam no trigger mas **não chegam** ao Dockerfile.
+
+**Correção (uma vez):** aponte o trigger para `cloudbuild.managed.yaml`:
+
+```powershell
+.\scripts\patch-cloud-run-trigger.ps1
+```
+
+Ou manualmente:
+
+```powershell
+gcloud builds triggers update rmgpgab-passanota-web-us-central1-lucastere10-passanota-web-rqi `
+  --project=caldas-projects-dev `
+  --build-config=cloudbuild.managed.yaml
+```
+
+Esse arquivo usa as mesmas substitutions do trigger e passa `--build-arg` corretamente.
+
+### Trigger customizado (recomendado para CI completo)
+
 | Trigger | Evento | Arquivo |
 |---------|--------|---------|
 | `passanota-web-pr` | PR → `main` | `cloudbuild.pr.yaml` |
