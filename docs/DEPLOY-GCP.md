@@ -57,13 +57,17 @@ gcloud builds submit --project=caldas-projects-dev \
 
 | Variável | Quando | Origem |
 |----------|--------|--------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Build | substitution `_SUPABASE_URL` |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Build | Secret Manager |
-| `NEXT_PUBLIC_APP_URL` | Build | substitution `_APP_URL` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Build + runtime | substitution `_SUPABASE_URL` |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Build + runtime | Secret Manager |
+| `SUPABASE_URL` | Runtime (middleware/server) | Cloud Run env (`_SUPABASE_URL`) |
+| `SUPABASE_PUBLISHABLE_KEY` | Runtime (middleware/server) | Secret Manager no Cloud Run |
+| `NEXT_PUBLIC_APP_URL` | Build + runtime | substitution `_APP_URL` |
 | `PASSANOTA_API_URL` | Runtime | Cloud Run env |
 | `PASSANOTA_API_USE_IAM` | Runtime | omitir (auto) ou `false` em dev local |
 
-Em produção, o frontend envia token IAM do Cloud Run em `Authorization` e JWT Supabase em `X-Supabase-Authorization`.
+**Importante:** variáveis `NEXT_PUBLIC_*` precisam estar no **docker build** (build-args) para o bundle do browser. O middleware/server também usam `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` em **runtime** no Cloud Run — configure-as no deploy (já feito em `cloudbuild.yaml`).
+
+Se o trigger não passar `_SUPABASE_URL`, `_APP_URL` e o secret, o build falha na validação ou no Dockerfile.
 
 ## Pós-deploy — Supabase
 
