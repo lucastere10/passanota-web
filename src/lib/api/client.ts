@@ -1,4 +1,4 @@
-import type { ApiError, CaptureInvoiceResponse, SemanticSearchResponse } from "@/lib/api/types";
+import type { ApiError, CaptureInvoiceResponse, Invoice, SemanticSearchResponse } from "@/lib/api/types";
 
 import { getClientAuthHeaders } from "@/lib/auth/client";
 
@@ -68,6 +68,10 @@ export async function captureInvoiceClient(file: File) {
   }
 
   return (await response.json()) as CaptureInvoiceResponse;
+}
+
+export function getInvoiceClient(id: string) {
+  return clientFetch<Invoice>(`/v1/invoices/${id}`);
 }
 
 export function searchSemanticClient(query: string, limit = 20) {

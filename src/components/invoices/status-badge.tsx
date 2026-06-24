@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 const STATUS_LABELS: Record<InvoiceStatus, string> = {
   parsed: "Processada",
-  pending: "Pendente",
+  pending: "Processando",
   failed: "Falhou",
 };
 
@@ -16,7 +16,8 @@ export function StatusBadge({ status }: { status: InvoiceStatus }) {
         "font-medium",
         status === "parsed" && "border-primary/30 bg-accent text-accent-foreground",
         status === "failed" && "border-destructive/30 bg-destructive/10 text-destructive",
-        status === "pending" && "border-border bg-muted text-muted-foreground",
+        status === "pending" &&
+          "animate-pulse border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300",
       )}
     >
       {STATUS_LABELS[status]}

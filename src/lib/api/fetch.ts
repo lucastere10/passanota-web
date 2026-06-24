@@ -1,6 +1,7 @@
 import type { ApiError } from "@/lib/api/types";
 
 import { getApiUrl } from "@/lib/api/env";
+import { withApiGatewayHeaders } from "@/lib/api/id-token";
 import { getAuthHeaders } from "@/lib/auth/session";
 
 type FetchOptions = {
@@ -55,9 +56,11 @@ export async function fetchFromApi<T>(
     headers["Content-Type"] = "application/json";
   }
 
+  const gatewayHeaders = await withApiGatewayHeaders(headers);
+
   const response = await fetch(buildUrl(path, searchParams), {
     method,
-    headers,
+    headers: gatewayHeaders,
     body: body !== undefined ? JSON.stringify(body) : undefined,
     cache: "no-store",
   });

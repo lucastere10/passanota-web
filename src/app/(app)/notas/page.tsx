@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { InvoicesTable } from "@/components/invoices/invoices-table";
+import { InvoicesTableWithPolling } from "@/components/invoices/invoices-table-with-polling";
 import { InvoiceFilters } from "@/components/invoices/invoice-filters";
 import { PageHeader } from "@/components/layout/page-header";
 import { buttonVariants } from "@/components/ui/button";
@@ -34,7 +34,7 @@ export default async function NotasPage({
         }
       />
 
-      <InvoicesTable invoices={data.data} />
+      <InvoicesTableWithPolling invoices={data.data} />
 
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">

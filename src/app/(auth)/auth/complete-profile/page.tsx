@@ -68,11 +68,7 @@ export default function CompleteProfilePage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Carregando...</p>
-      </div>
-    );
+    return null;
   }
 
   return (

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -22,6 +22,7 @@ export function InvoiceFilters({
   currentStatus?: InvoiceStatus;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
 
   function buildHref(next: Record<string, string | undefined>) {
@@ -44,7 +45,7 @@ export function InvoiceFilters({
         value={currentUf ?? "all"}
         onValueChange={(value) => {
           if (!value) return;
-          window.location.href = buildHref({ uf: value, status: currentStatus });
+          router.push(buildHref({ uf: value, status: currentStatus }));
         }}
       >
         <SelectTrigger className="w-[120px]">
@@ -61,7 +62,7 @@ export function InvoiceFilters({
         value={currentStatus ?? "all"}
         onValueChange={(value) => {
           if (!value) return;
-          window.location.href = buildHref({ uf: currentUf, status: value });
+          router.push(buildHref({ uf: currentUf, status: value }));
         }}
       >
         <SelectTrigger className="w-[160px]">

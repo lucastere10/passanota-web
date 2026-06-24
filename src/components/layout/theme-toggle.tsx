@@ -1,34 +1,62 @@
 "use client";
 
-import { Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
-import { buttonVariants } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export function ThemeToggle() {
-  const { setTheme } = useTheme();
+const THEMES = ["light", "dark", "system"] as const;
+type Theme = (typeof THEMES)[number];
+
+function nextTheme(current: Theme): Theme {
+  const index = THEMES.indexOf(current);
+  return THEMES[(index + 1) % THEMES.length];
+}
+
+export function ThemeToggle({ className }: { className?: string }) {
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  function handleToggle() {
+    const current = (theme ?? "system") as Theme;
+    setTheme(nextTheme(current));
+  }
+
+  const activeTheme = mounted ? (theme ?? "system") : "system";
+  const isDark = mounted && (resolvedTheme === "dark" || activeTheme === "dark");
+
+  const label =
+    activeTheme === "system"
+      ? "Tema: sistema"
+      : activeTheme === "dark"
+        ? "Tema: escuro"
+        : "Tema: claro";
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        aria-label="Alternar tema"
-        className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "relative")}
-      >
-        <Sun className="h-4 w-4 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
-        <Moon className="absolute h-4 w-4 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>Claro</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>Escuro</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>Sistema</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon-sm"
+      onClick={handleToggle}
+      aria-label={label}
+      title={label}
+      className={cn("relative text-muted-foreground hover:text-foreground", className)}
+    >
+      {!mounted ? (
+        <Sun className="h-4 w-4" />
+      ) : activeTheme === "system" ? (
+        <Monitor className="h-4 w-4" />
+      ) : isDark ? (
+        <Moon className="h-4 w-4" />
+      ) : (
+        <Sun className="h-4 w-4" />
+      )}
+    </Button>
   );
 }

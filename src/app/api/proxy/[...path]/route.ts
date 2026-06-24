@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getApiUrl } from "@/lib/api/env";
+import { withApiGatewayHeaders } from "@/lib/api/id-token";
 
 async function proxyRequest(request: NextRequest, pathSegments: string[]) {
   const targetPath = pathSegments.join("/");
@@ -37,9 +38,11 @@ async function proxyRequest(request: NextRequest, pathSegments: string[]) {
     }
   }
 
+  const gatewayHeaders = await withApiGatewayHeaders(headers);
+
   const response = await fetch(url.toString(), {
     method: request.method,
-    headers,
+    headers: gatewayHeaders,
     body,
     cache: "no-store",
   });

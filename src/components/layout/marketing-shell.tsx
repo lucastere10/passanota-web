@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { BrandLogo } from "@/components/layout/brand-logo";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
 
 export function MarketingShell({ children }: { children: React.ReactNode }) {
@@ -10,6 +11,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 md:px-8">
           <BrandLogo href="/" size="lg" />
           <nav className="flex items-center gap-2">
+            <ThemeToggle />
             <Button variant="ghost" size="sm" render={<Link href="/login" />}>
               Entrar
             </Button>

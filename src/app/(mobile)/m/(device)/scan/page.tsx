@@ -12,7 +12,7 @@ export default function MobileScanPage() {
           Tire uma foto da nota fiscal para registrar.
         </p>
       </div>
-      <ScanPanel captureFn={captureInvoiceDeviceClient} />
+      <ScanPanel captureFn={captureInvoiceDeviceClient} notasHref="/m/notas" />
     </div>
   );
 }

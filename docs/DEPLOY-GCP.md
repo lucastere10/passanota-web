@@ -1,0 +1,95 @@
+# Deploy no Google Cloud Run
+
+Projeto GCP: **caldas-projects-dev** | Região: **us-central1**
+
+## Pré-requisitos
+
+1. Infra GCP — ver [passanota-api/docs/DEPLOY-GCP.md](../passanota-api/docs/DEPLOY-GCP.md)
+2. API deployada com IAM (`--no-allow-unauthenticated`) e `setup-api-iam.ps1` executado
+3. Secret `PASSANOTA_SUPABASE_PUBLISHABLE_KEY` no Secret Manager
+
+```powershell
+"sb_publishable_..." | gcloud secrets create PASSANOTA_SUPABASE_PUBLISHABLE_KEY --replication-policy=automatic --data-file=-
+```
+
+Conceda `roles/secretmanager.secretAccessor` ao Cloud Build SA e ao Cloud Run SA.
+
+## Cloud Build via GitHub
+
+| Trigger | Evento | Arquivo |
+|---------|--------|---------|
+| `passanota-web-pr` | PR → `main` | `cloudbuild.pr.yaml` |
+| `passanota-web-main` | Push → `main` | `cloudbuild.yaml` |
+
+Substitutions obrigatórias no trigger **main**:
+
+- `_TAG=$SHORT_SHA`
+- `_PASSANOTA_API_URL` — URL da API Cloud Run
+- `_SUPABASE_URL` — URL do projeto Supabase
+- `_APP_URL` — URL pública deste frontend
+
+```powershell
+.\scripts\setup-cloud-build-trigger.ps1 -GitHubOwner SEU_USER -GitHubRepo passanota-web `
+  -PassanotaApiUrl "https://passanota-api-....run.app" `
+  -SupabaseUrl "https://....supabase.co" `
+  -AppUrl "https://passanota-web-....run.app"
+```
+
+Pipeline **main**: validate secrets → lint → typecheck → docker build → push → deploy.
+
+Pipeline **PR**: validate → lint → typecheck → docker build (sem deploy).
+
+## Deploy manual
+
+```powershell
+$env:TAG = "hotfix-2026-06-23"; .\scripts\deploy.ps1
+```
+
+Com substitutions:
+
+```bash
+gcloud builds submit --project=caldas-projects-dev \
+  --config=cloudbuild.yaml \
+  --substitutions=_TAG=v1.0.0,_PASSANOTA_API_URL=https://passanota-api-XXXX.run.app,_SUPABASE_URL=https://ref.supabase.co,_APP_URL=https://passanota-web-XXXX.run.app
+```
+
+## Variáveis de ambiente
+
+| Variável | Quando | Origem |
+|----------|--------|--------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Build | substitution `_SUPABASE_URL` |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Build | Secret Manager |
+| `NEXT_PUBLIC_APP_URL` | Build | substitution `_APP_URL` |
+| `PASSANOTA_API_URL` | Runtime | Cloud Run env |
+| `PASSANOTA_API_USE_IAM` | Runtime | omitir (auto) ou `false` em dev local |
+
+Em produção, o frontend envia token IAM do Cloud Run em `Authorization` e JWT Supabase em `X-Supabase-Authorization`.
+
+## Pós-deploy — Supabase
+
+1. **Authentication → URL Configuration**
+   - Site URL: mesma URL de `_APP_URL`
+   - Redirect URLs: `https://<web-url>/auth/callback`, `https://<web-url>/auth/confirm`
+2. Redeploy da API com `_FRONTEND_URL` = URL final do frontend
+
+## Sequência de rollout
+
+1. Secrets + IAM na API
+2. Deploy API
+3. Deploy Web (este repositório)
+4. Validar login, dashboard, upload de nota, pairing mobile
+
+## Build local (opcional)
+
+```bash
+docker build \
+  --build-arg NEXT_PUBLIC_SUPABASE_URL=https://[ref].supabase.co \
+  --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_... \
+  --build-arg NEXT_PUBLIC_APP_URL=http://localhost:3000 \
+  -t passanota-web:local .
+
+docker run --rm -p 8080:8080 \
+  -e PASSANOTA_API_URL=http://host.docker.internal:8000 \
+  -e PASSANOTA_API_USE_IAM=false \
+  passanota-web:local
+```

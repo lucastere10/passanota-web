@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { AuthVisualPanel } from "@/components/layout/auth-visual-panel";
 import { BrandLogo } from "@/components/layout/brand-logo";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { AUTH_BENEFITS } from "@/lib/auth-marketing";
@@ -51,12 +52,15 @@ export function AuthShell({
       <div className="flex min-h-dvh flex-col bg-background lg:h-full lg:min-h-0 lg:overflow-hidden">
         <header className="flex shrink-0 items-center justify-between px-6 py-4 lg:px-10">
           <BrandLogo href="/" size="lg" />
-          <Link
-            href="/"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Voltar ao site
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Link
+              href="/"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Voltar ao site
+            </Link>
+          </div>
         </header>
 
         <div className="flex flex-1 flex-col justify-center px-6 py-6 lg:min-h-0 lg:overflow-hidden lg:px-10 lg:py-4">

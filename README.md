@@ -15,7 +15,6 @@ Frontend Next.js para controle de custos via leitura de notas fiscais com IA, in
 
 ```bash
 cp .env.example .env.local
-# PASSANOTA_API_KEY=<mesmo valor de API_KEY>
 pnpm install
 pnpm dev
 ```
@@ -35,7 +34,7 @@ Acesse http://localhost:3000
 ## Arquitetura
 
 - **Next.js App Router** + shadcn/ui
-- **BFF proxy** em `/api/proxy/*` — injeta `X-API-Key` e repassa multipart para captura de fotos
+- **BFF proxy** em `/api/proxy/*` — repassa Bearer, `X-Empresa-Id` e `X-Device-Token` para a API
 - Tema **light/dark** com paleta sóbria e destaque teal
 
 ## Variáveis
@@ -43,6 +42,10 @@ Acesse http://localhost:3000
 | Variável | Descrição |
 |----------|-----------|
 | `PASSANOTA_API_URL` | URL da API (padrão: `http://localhost:8000`) |
-| `PASSANOTA_API_KEY` | Chave da API do projeto (`API_KEY` no backend) — **não** é a chave do LLM |
 | `NEXT_PUBLIC_SUPABASE_URL` | URL do Supabase |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Publishable key (`sb_publishable_...`) |
+| `NEXT_PUBLIC_APP_URL` | URL do frontend (redirects de magic link) |
+
+## Deploy (Cloud Run)
+
+Ver [docs/DEPLOY-GCP.md](docs/DEPLOY-GCP.md).
