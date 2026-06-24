@@ -6,8 +6,10 @@ substitutions:
   _TAG: latest
   _PASSANOTA_API_URL: ""
   _SUPABASE_URL: ""
+  _SUPABASE_PUBLISHABLE_KEY: ""
   _APP_URL: ""
   _MIN_INSTANCES: "0"
+  # Opcional: use secret só se _SUPABASE_PUBLISHABLE_KEY não estiver no trigger
   _SECRET_SUPABASE_PUBLISHABLE_KEY: PASSANOTA_SUPABASE_PUBLISHABLE_KEY
 
 availableSecrets:
@@ -16,21 +18,54 @@ availableSecrets:
       env: SUPABASE_PUBLISHABLE_KEY
 
 steps:
-  - id: validate
+  - id: resolve-config
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    secretEnv: [SUPABASE_PUBLISHABLE_KEY]
     entrypoint: bash
     args:
       - -c
       - |
         set -euo pipefail
-        if [ -z "${_PASSANOTA_API_URL}" ] || [ -z "${_SUPABASE_URL}" ] || [ -z "${_APP_URL}" ]; then
-          echo "ERROR: Configure _PASSANOTA_API_URL, _SUPABASE_URL e _APP_URL nas substitutions."
+
+        require_value() {
+          local value="$$1"
+          local name="$$2"
+          if [ -z "$$value" ]; then
+            echo "ERROR: configure a substitution _$$name no trigger do Cloud Build." >&2
+            exit 1
+          fi
+          printf '%s' "$$value"
+        }
+
+        SUPABASE_URL="$$(require_value "${_SUPABASE_URL}" "SUPABASE_URL")"
+        APP_URL="$$(require_value "${_APP_URL}" "APP_URL")"
+        API_URL="$$(require_value "${_PASSANOTA_API_URL}" "PASSANOTA_API_URL")"
+
+        if [ -n "${_SUPABASE_PUBLISHABLE_KEY}" ]; then
+          PUBLISHABLE_KEY="${_SUPABASE_PUBLISHABLE_KEY}"
+        elif [ -n "$$SUPABASE_PUBLISHABLE_KEY" ]; then
+          PUBLISHABLE_KEY="$$SUPABASE_PUBLISHABLE_KEY"
+        else
+          echo "ERROR: configure _SUPABASE_PUBLISHABLE_KEY no trigger ou o secret ${_SECRET_SUPABASE_PUBLISHABLE_KEY}." >&2
           exit 1
         fi
-        case "${_APP_URL}" in *XXXX*|*"[project-ref]"*) echo "ERROR: _APP_URL é placeholder (${_APP_URL})."; exit 1;; esac
-        echo "Checking secret: ${_SECRET_SUPABASE_PUBLISHABLE_KEY}"
-        gcloud secrets describe "${_SECRET_SUPABASE_PUBLISHABLE_KEY}" --project="$PROJECT_ID" >/dev/null
-        echo "Validation OK (commit: $COMMIT_SHA)"
+
+        case "$$APP_URL" in
+          *XXXX*|*"[project-ref]"*)
+            echo "ERROR: _APP_URL é placeholder ($$APP_URL)." >&2
+            exit 1
+            ;;
+        esac
+
+        echo "SUPABASE_URL=$$SUPABASE_URL" > /workspace/.build-config.env
+        echo "APP_URL=$$APP_URL" >> /workspace/.build-config.env
+        echo "API_URL=$$API_URL" >> /workspace/.build-config.env
+        echo "PUBLISHABLE_KEY=$$PUBLISHABLE_KEY" >> /workspace/.build-config.env
+
+        echo "Config resolved (commit: $COMMIT_SHA)"
+        echo "  SUPABASE_URL=$$SUPABASE_URL"
+        echo "  APP_URL=$$APP_URL"
+        echo "  API_URL=$$API_URL"
 
   - id: lint
     name: node:22-alpine
@@ -43,24 +78,23 @@ steps:
         pnpm install --frozen-lockfile
         pnpm lint
         pnpm typecheck
-    waitFor: [validate]
+    waitFor: [resolve-config]
 
   - id: build
     name: gcr.io/cloud-builders/docker
-    secretEnv: [SUPABASE_PUBLISHABLE_KEY]
+    entrypoint: bash
     args:
-      - build
-      - -t
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:${_TAG}
-      - -t
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:latest
-      - --build-arg
-      - NEXT_PUBLIC_SUPABASE_URL=${_SUPABASE_URL}
-      - --build-arg
-      - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$$SUPABASE_PUBLISHABLE_KEY
-      - --build-arg
-      - NEXT_PUBLIC_APP_URL=${_APP_URL}
-      - .
+      - -c
+      - |
+        set -euo pipefail
+        source /workspace/.build-config.env
+        docker build \
+          -t ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:${_TAG} \
+          -t ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:latest \
+          --build-arg NEXT_PUBLIC_SUPABASE_URL="$$SUPABASE_URL" \
+          --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$$PUBLISHABLE_KEY" \
+          --build-arg NEXT_PUBLIC_APP_URL="$$APP_URL" \
+          .
     waitFor: [lint]
 
   - id: push
@@ -73,34 +107,24 @@ steps:
 
   - id: deploy
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - run
-      - deploy
-      - ${_SERVICE_NAME}
-      - --image
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:${_TAG}
-      - --region
-      - ${_REGION}
-      - --platform
-      - managed
-      - --allow-unauthenticated
-      - --port
-      - "8080"
-      - --memory
-      - 512Mi
-      - --cpu
-      - "1"
-      - --timeout
-      - "60"
-      - --min-instances
-      - ${_MIN_INSTANCES}
-      - --max-instances
-      - "5"
-      - --set-env-vars
-      - ^|^NODE_ENV=production|PASSANOTA_API_URL=${_PASSANOTA_API_URL}|SUPABASE_URL=${_SUPABASE_URL}|NEXT_PUBLIC_SUPABASE_URL=${_SUPABASE_URL}|NEXT_PUBLIC_APP_URL=${_APP_URL}
-      - --set-secrets
-      - SUPABASE_PUBLISHABLE_KEY=${_SECRET_SUPABASE_PUBLISHABLE_KEY}:latest,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${_SECRET_SUPABASE_PUBLISHABLE_KEY}:latest
+      - -c
+      - |
+        set -euo pipefail
+        source /workspace/.build-config.env
+        gcloud run deploy ${_SERVICE_NAME} \
+          --image ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:${_TAG} \
+          --region ${_REGION} \
+          --platform managed \
+          --allow-unauthenticated \
+          --port 8080 \
+          --memory 512Mi \
+          --cpu 1 \
+          --timeout 60 \
+          --min-instances ${_MIN_INSTANCES} \
+          --max-instances 5 \
+          --set-env-vars "^|^NODE_ENV=production|PASSANOTA_API_URL=$$API_URL|SUPABASE_URL=$$SUPABASE_URL|NEXT_PUBLIC_SUPABASE_URL=$$SUPABASE_URL|NEXT_PUBLIC_APP_URL=$$APP_URL|NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$$PUBLISHABLE_KEY|SUPABASE_PUBLISHABLE_KEY=$$PUBLISHABLE_KEY"
     waitFor: [push]
 
 images:

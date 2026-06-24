@@ -14,6 +14,22 @@ Projeto GCP: **caldas-projects-dev** | Região: **us-central1**
 
 Conceda `roles/secretmanager.secretAccessor` ao Cloud Build SA e ao Cloud Run SA.
 
+### Variáveis no trigger (recomendado)
+
+Configure no trigger GitHub — **não precisa de Secret Manager para URLs**:
+
+| Substitution | Exemplo |
+|--------------|---------|
+| `_TAG` | `$SHORT_SHA` |
+| `_SUPABASE_URL` | `https://[ref].supabase.co` |
+| `_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_...` |
+| `_APP_URL` | `https://passanota-web-....run.app` |
+| `_PASSANOTA_API_URL` | `https://passanota-api-....run.app` |
+
+O secret `PASSANOTA_SUPABASE_PUBLISHABLE_KEY` é **opcional** — use só se preferir não colocar a publishable key na substitution.
+
+`scripts/setup-deploy-secrets.ps1` é alternativa legada; não é necessário se o trigger já tem as substitutions acima.
+
 ## Cloud Build via GitHub
 
 | Trigger | Evento | Arquivo |
