@@ -13,8 +13,9 @@ $Root = Split-Path -Parent $PSScriptRoot
 gcloud config set project $Project
 
 Write-Host "Updating trigger $TriggerName to use cloudbuild.managed.yaml..."
-gcloud builds triggers update $TriggerName `
+gcloud builds triggers update github $TriggerName `
     --project=$Project `
+    --region=global `
     --build-config="$Root/cloudbuild.managed.yaml"
 
 Write-Host ""
