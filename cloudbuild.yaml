@@ -1,135 +1,45 @@
 substitutions:
   _REGION: us-central1
-  _AR_REPOSITORY: passanota-images
-  _IMAGE_NAME: passanota-web
+  _AR_REPOSITORY: passanota
   _SERVICE_NAME: passanota-web
-  _TAG: latest
-  _PASSANOTA_API_URL: ""
   _SUPABASE_URL: ""
   _SUPABASE_PUBLISHABLE_KEY: ""
   _APP_URL: ""
-  _MIN_INSTANCES: "0"
-  # Opcional: use secret só se _SUPABASE_PUBLISHABLE_KEY não estiver no trigger
-  _SECRET_SUPABASE_PUBLISHABLE_KEY: PASSANOTA_SUPABASE_PUBLISHABLE_KEY
-
-availableSecrets:
-  secretManager:
-    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_SUPABASE_PUBLISHABLE_KEY}/versions/latest
-      env: SUPABASE_PUBLISHABLE_KEY
-
-steps:
-  - id: resolve-config
-    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    secretEnv: [SUPABASE_PUBLISHABLE_KEY]
-    entrypoint: bash
-    args:
-      - -c
-      - |
-        set -euo pipefail
-
-        require_value() {
-          local value="$$1"
-          local name="$$2"
-          if [ -z "$$value" ]; then
-            echo "ERROR: configure a substitution _$$name no trigger do Cloud Build." >&2
-            exit 1
-          fi
-          printf '%s' "$$value"
-        }
-
-        SUPABASE_URL="$$(require_value "${_SUPABASE_URL}" "SUPABASE_URL")"
-        APP_URL="$$(require_value "${_APP_URL}" "APP_URL")"
-        API_URL="$$(require_value "${_PASSANOTA_API_URL}" "PASSANOTA_API_URL")"
-
-        if [ -n "${_SUPABASE_PUBLISHABLE_KEY}" ]; then
-          PUBLISHABLE_KEY="${_SUPABASE_PUBLISHABLE_KEY}"
-        elif [ -n "$$SUPABASE_PUBLISHABLE_KEY" ]; then
-          PUBLISHABLE_KEY="$$SUPABASE_PUBLISHABLE_KEY"
-        else
-          echo "ERROR: configure _SUPABASE_PUBLISHABLE_KEY no trigger ou o secret ${_SECRET_SUPABASE_PUBLISHABLE_KEY}." >&2
-          exit 1
-        fi
-
-        case "$$APP_URL" in
-          *XXXX*|*"[project-ref]"*)
-            echo "ERROR: _APP_URL é placeholder ($$APP_URL)." >&2
-            exit 1
-            ;;
-        esac
-
-        echo "SUPABASE_URL=$$SUPABASE_URL" > /workspace/.build-config.env
-        echo "APP_URL=$$APP_URL" >> /workspace/.build-config.env
-        echo "API_URL=$$API_URL" >> /workspace/.build-config.env
-        echo "PUBLISHABLE_KEY=$$PUBLISHABLE_KEY" >> /workspace/.build-config.env
-
-        echo "Config resolved (commit: $COMMIT_SHA)"
-        echo "  SUPABASE_URL=$$SUPABASE_URL"
-        echo "  APP_URL=$$APP_URL"
-        echo "  API_URL=$$API_URL"
-
-  - id: lint
-    name: node:22-alpine
-    entrypoint: sh
-    args:
-      - -c
-      - |
-        set -e
-        corepack enable && corepack prepare pnpm@8.15.9 --activate
-        pnpm install --frozen-lockfile
-        pnpm lint
-        pnpm typecheck
-    waitFor: [resolve-config]
-
-  - id: build
-    name: gcr.io/cloud-builders/docker
-    entrypoint: bash
-    args:
-      - -c
-      - |
-        set -euo pipefail
-        source /workspace/.build-config.env
-        docker build \
-          -t ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:${_TAG} \
-          -t ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:latest \
-          --build-arg NEXT_PUBLIC_SUPABASE_URL="$$SUPABASE_URL" \
-          --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$$PUBLISHABLE_KEY" \
-          --build-arg NEXT_PUBLIC_APP_URL="$$APP_URL" \
-          .
-    waitFor: [lint]
-
-  - id: push
-    name: gcr.io/cloud-builders/docker
-    args:
-      - push
-      - --all-tags
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}
-    waitFor: [build]
-
-  - id: deploy
-    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    entrypoint: bash
-    args:
-      - -c
-      - |
-        set -euo pipefail
-        source /workspace/.build-config.env
-        gcloud run deploy ${_SERVICE_NAME} \
-          --image ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:${_TAG} \
-          --region ${_REGION} \
-          --platform managed \
-          --allow-unauthenticated \
-          --port 8080 \
-          --memory 512Mi \
-          --cpu 1 \
-          --timeout 60 \
-          --min-instances ${_MIN_INSTANCES} \
-          --max-instances 5 \
-          --set-env-vars "^|^NODE_ENV=production|PASSANOTA_API_URL=$$API_URL|SUPABASE_URL=$$SUPABASE_URL|NEXT_PUBLIC_SUPABASE_URL=$$SUPABASE_URL|NEXT_PUBLIC_APP_URL=$$APP_URL|NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$$PUBLISHABLE_KEY|SUPABASE_PUBLISHABLE_KEY=$$PUBLISHABLE_KEY"
-    waitFor: [push]
-
-images:
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:${_TAG}
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:latest
+  _PASSANOTA_API_URL: ""
 
 options:
   logging: CLOUD_LOGGING_ONLY
+
+images:
+  - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_SERVICE_NAME}:$SHORT_SHA"
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    id: build
+    args:
+      - build
+      - "--build-arg=NEXT_PUBLIC_SUPABASE_URL=${_SUPABASE_URL}"
+      - "--build-arg=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${_SUPABASE_PUBLISHABLE_KEY}"
+      - "--build-arg=NEXT_PUBLIC_APP_URL=${_APP_URL}"
+      - "-t"
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_SERVICE_NAME}:$SHORT_SHA"
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    id: push
+    args:
+      - push
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_SERVICE_NAME}:$SHORT_SHA"
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: deploy
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - "${_SERVICE_NAME}"
+      - "--image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_SERVICE_NAME}:$SHORT_SHA"
+      - "--region=${_REGION}"
+      - "--platform=managed"
+      - "--set-env-vars=PASSANOTA_API_URL=${_PASSANOTA_API_URL}"
+      - "--quiet"

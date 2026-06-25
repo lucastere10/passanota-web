@@ -15,26 +15,23 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Optional overrides; when empty, Next.js loads .env.production from COPY above.
-ARG NEXT_PUBLIC_SUPABASE_URL=
-ARG NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
-ARG NEXT_PUBLIC_APP_URL=
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+ARG NEXT_PUBLIC_APP_URL
 
-ENV NODE_ENV=production
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
+    NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
+    NODE_ENV=production
 
-RUN set -a \
-  && if [ -n "$NEXT_PUBLIC_SUPABASE_URL" ]; then export NEXT_PUBLIC_SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL"; fi \
-  && if [ -n "$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY" ]; then export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"; fi \
-  && if [ -n "$NEXT_PUBLIC_APP_URL" ]; then export NEXT_PUBLIC_APP_URL="$NEXT_PUBLIC_APP_URL"; fi \
-  && set +a \
-  && pnpm run build
+RUN pnpm run build
 
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV=production
-ENV PORT=8080
-ENV HOSTNAME=0.0.0.0
+ENV NODE_ENV=production \
+    PORT=8080 \
+    HOSTNAME=0.0.0.0
 
 RUN addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 nextjs

@@ -1,5 +1,4 @@
 export function getSupabaseUrl(): string {
-  // Middleware (Edge) only sees NEXT_PUBLIC_* inlined at build time — not Cloud Run runtime env.
   const value = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!value) {
     throw new Error("Missing environment variable: NEXT_PUBLIC_SUPABASE_URL");
@@ -8,18 +7,11 @@ export function getSupabaseUrl(): string {
 }
 
 export function getSupabasePublishableKey(): string {
-  const value =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const value = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!value) {
     throw new Error(
-      "Missing environment variable: NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "Missing environment variable: NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
     );
   }
   return value;
-}
-
-/** @deprecated Use getSupabasePublishableKey */
-export function getSupabaseAnonKey(): string {
-  return getSupabasePublishableKey();
 }
