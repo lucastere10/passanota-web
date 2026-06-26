@@ -4,9 +4,22 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 import { InvoicesTable } from "@/components/invoices/invoices-table";
-import type { Invoice } from "@/lib/api/types";
+import type { InvoiceDateRange, InvoiceSortField, InvoiceSortOrder } from "@/lib/invoices/constants";
+import type { Invoice, InvoiceStatus } from "@/lib/api/types";
 
-export function InvoicesTableWithPolling({ invoices }: { invoices: Invoice[] }) {
+export function InvoicesTableWithPolling({
+  invoices,
+  sortBy,
+  sortOrder,
+  status,
+  range,
+}: {
+  invoices: Invoice[];
+  sortBy?: InvoiceSortField;
+  sortOrder?: InvoiceSortOrder;
+  status?: InvoiceStatus;
+  range?: InvoiceDateRange;
+}) {
   const router = useRouter();
   const hasPending = invoices.some((invoice) => invoice.status === "pending");
 
@@ -16,5 +29,13 @@ export function InvoicesTableWithPolling({ invoices }: { invoices: Invoice[] }) 
     return () => window.clearInterval(intervalId);
   }, [hasPending, router]);
 
-  return <InvoicesTable invoices={invoices} />;
+  return (
+    <InvoicesTable
+      invoices={invoices}
+      sortBy={sortBy}
+      sortOrder={sortOrder}
+      status={status}
+      range={range}
+    />
+  );
 }

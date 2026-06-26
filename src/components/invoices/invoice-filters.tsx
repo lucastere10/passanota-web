@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { X } from "lucide-react";
 
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -11,15 +12,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { INVOICE_STATUS_LABELS } from "@/lib/invoices/constants";
 import type { InvoiceStatus } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
+const STATUS_OPTIONS: InvoiceStatus[] = ["parsed", "pending", "failed"];
+
 export function InvoiceFilters({
-  currentUf,
   currentStatus,
+  hasActiveFilters,
 }: {
-  currentUf?: string;
   currentStatus?: InvoiceStatus;
+  hasActiveFilters: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -29,7 +33,7 @@ export function InvoiceFilters({
     const params = new URLSearchParams(searchParams.toString());
     params.delete("page");
     for (const [key, value] of Object.entries(next)) {
-      if (!value || value === "all") {
+      if (!value) {
         params.delete(key);
       } else {
         params.set(key, value);
@@ -40,45 +44,45 @@ export function InvoiceFilters({
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
-      <Select
-        value={currentUf ?? "all"}
-        onValueChange={(value) => {
-          if (!value) return;
-          router.push(buildHref({ uf: value, status: currentStatus }));
-        }}
-      >
-        <SelectTrigger className="w-[120px]">
-          <SelectValue placeholder="UF" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas UFs</SelectItem>
-          <SelectItem value="SP">SP</SelectItem>
-          <SelectItem value="RJ">RJ</SelectItem>
-        </SelectContent>
-      </Select>
-
+    <div className="flex items-center gap-2">
       <Select
         value={currentStatus ?? "all"}
         onValueChange={(value) => {
-          if (!value) return;
-          router.push(buildHref({ uf: currentUf, status: value }));
+          if (!value || value === "all") {
+            router.push(buildHref({ status: undefined }));
+            return;
+          }
+          router.push(buildHref({ status: value }));
         }}
       >
-        <SelectTrigger className="w-[160px]">
-          <SelectValue placeholder="Status" />
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="Todos os status">
+            {currentStatus ? INVOICE_STATUS_LABELS[currentStatus] : "Todos os status"}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Todos status</SelectItem>
-          <SelectItem value="parsed">Processada</SelectItem>
-          <SelectItem value="pending">Pendente</SelectItem>
-          <SelectItem value="failed">Falhou</SelectItem>
+          <SelectItem value="all">Todos os status</SelectItem>
+          {STATUS_OPTIONS.map((status) => (
+            <SelectItem key={status} value={status}>
+              {INVOICE_STATUS_LABELS[status]}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
 
-      <Link href={pathname} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
-        Limpar
-      </Link>
+      {hasActiveFilters ? (
+        <Link
+          href={pathname}
+          className={cn(buttonVariants({ variant: "outline", size: "icon-sm" }))}
+          aria-label="Limpar filtros"
+        >
+          <X className="size-4" />
+        </Link>
+      ) : (
+        <Button variant="outline" size="icon-sm" disabled aria-label="Limpar filtros">
+          <X className="size-4" />
+        </Button>
+      )}
     </div>
   );
 }

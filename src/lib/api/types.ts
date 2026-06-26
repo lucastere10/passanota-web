@@ -149,6 +149,22 @@ export interface CaptureInvoiceResponse {
     data: string | null;
     item_count: number;
   };
+  processing_note?: string;
+}
+
+export interface UpdateInvoiceRequest {
+  issued_at?: string | null;
+  total_amount?: string | null;
+  discount_amount?: string | null;
+  emitter_name?: string | null;
+}
+
+export interface UpdateInvoiceItemRequest {
+  description?: string | null;
+  quantity?: string | null;
+  unit_price?: string | null;
+  total_price?: string | null;
+  unit?: string | null;
 }
 
 export interface ApiError {
