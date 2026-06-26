@@ -1,12 +1,7 @@
 import type { InvoiceStatus } from "@/lib/api/types";
+import { INVOICE_STATUS_LABELS } from "@/lib/invoices/constants";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-const STATUS_LABELS: Record<InvoiceStatus, string> = {
-  parsed: "Processada",
-  pending: "Processando",
-  failed: "Falhou",
-};
 
 export function StatusBadge({ status }: { status: InvoiceStatus }) {
   return (
@@ -20,7 +15,7 @@ export function StatusBadge({ status }: { status: InvoiceStatus }) {
           "animate-pulse border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300",
       )}
     >
-      {STATUS_LABELS[status]}
+      {INVOICE_STATUS_LABELS[status]}
     </Badge>
   );
 }

@@ -2,17 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { ImagePreview } from "@/components/scan/image-preview";
-import { PhotoCapture } from "@/components/scan/photo-capture";
+import { DropZone, FilePreview } from "@/components/scan/drop-zone";
+import { CaptureStatusTracker } from "@/components/scan/capture-status-tracker";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { captureInvoiceClient } from "@/lib/api/client";
 import type { CaptureInvoiceResponse } from "@/lib/api/types";
-
-type Step = "capture" | "preview";
 
 type ScanPanelProps = {
   captureFn?: (file: File) => Promise<CaptureInvoiceResponse>;
@@ -24,7 +23,6 @@ export function ScanPanel({
   notasHref = "/notas",
 }: ScanPanelProps) {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("capture");
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [lastSubmittedId, setLastSubmittedId] = useState<string | null>(null);
@@ -39,17 +37,15 @@ export function ScanPanel({
     setFile(null);
     setPreviewUrl(null);
     setError(null);
-    setStep("capture");
   }
 
-  function handleCapture(captured: File) {
+  function handleFileSelect(selected: File) {
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
-    setFile(captured);
-    setPreviewUrl(URL.createObjectURL(captured));
+    setFile(selected);
+    setPreviewUrl(URL.createObjectURL(selected));
     setError(null);
-    setStep("preview");
   }
 
   function handleSubmit() {
@@ -89,66 +85,55 @@ export function ScanPanel({
   }, [previewUrl]);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="mx-auto max-w-2xl space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle>Captura</CardTitle>
+        <CardHeader className="text-center">
+          <CardTitle>Enviar nota fiscal</CardTitle>
           <CardDescription>
-            Tire uma foto da nota fiscal ou envie uma imagem do dispositivo.
+            Arraste a imagem da nota ou clique para selecionar. A extração roda em segundo plano.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          {step === "capture" ? (
-            <PhotoCapture onCapture={handleCapture} disabled={isPending} />
-          ) : null}
-          {step === "preview" && file && previewUrl ? (
-            <ImagePreview
-              file={file}
-              previewUrl={previewUrl}
-              onRetake={resetCapture}
-              onSubmit={handleSubmit}
-              disabled={isPending}
-            />
-          ) : null}
-          {isPending ? (
-            <p className="mt-4 text-sm text-muted-foreground">Enviando imagem...</p>
+        <CardContent className="space-y-4">
+          {!file ? (
+            <DropZone onFileSelect={handleFileSelect} disabled={isPending} />
+          ) : (
+            <div className="space-y-4">
+              {previewUrl ? <FilePreview file={file} previewUrl={previewUrl} /> : null}
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" onClick={handleSubmit} disabled={isPending}>
+                  {isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    "Enviar nota"
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={resetCapture}
+                  disabled={isPending}
+                >
+                  Escolher outra
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {error ? (
+            <Alert variant="destructive">
+              <AlertTitle>Erro no envio</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           ) : null}
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Processamento</CardTitle>
-          <CardDescription>
-            A nota é analisada em segundo plano. Você pode continuar capturando ou acompanhar em
-            Notas.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {error ? (
-            <Alert variant="destructive">
-              <AlertTitle>Erro</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : null}
-          {!error && !lastSubmittedId ? (
-            <p className="text-sm text-muted-foreground">
-              Após o envio, a extração com IA roda em background. O status aparece na lista de
-              notas.
-            </p>
-          ) : null}
-          {lastSubmittedId ? (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Última nota enviada está sendo processada.
-              </p>
-              <Button variant="outline" size="sm" onClick={() => router.push(notasHref)}>
-                Ver notas
-              </Button>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
+      {lastSubmittedId ? (
+        <CaptureStatusTracker invoiceId={lastSubmittedId} notasHref={notasHref} />
+      ) : null}
     </div>
   );
 }

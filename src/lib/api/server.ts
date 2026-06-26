@@ -50,8 +50,11 @@ export async function getRecentInvoices(limit = 10) {
 export async function getInvoices(params: {
   page?: number;
   page_size?: number;
-  uf?: string;
   status?: string;
+  created_from?: string;
+  created_to?: string;
+  sort_by?: string;
+  sort_order?: string;
 }) {
   return fetchFromApi<PaginatedInvoices>("/v1/invoices", {
     searchParams: params,
