@@ -2,15 +2,23 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { ApiUnavailableState } from "@/components/layout/api-unavailable-state";
 import { EmpresaProvider } from "@/components/providers/empresa-provider";
 import { getMeServer } from "@/lib/api/auth-server";
+import { isApiUnavailableError, isUnauthorizedError } from "@/lib/api/errors";
 import { EMPRESA_COOKIE } from "@/lib/auth/constants";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   let me;
   try {
     me = await getMeServer();
-  } catch {
+  } catch (err) {
+    if (isApiUnavailableError(err)) {
+      return <ApiUnavailableState />;
+    }
+    if (isUnauthorizedError(err)) {
+      redirect("/login");
+    }
     redirect("/login");
   }
 

@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { InvoiceDateRangeFilters } from "@/components/invoices/invoice-date-range-filters";
+import { InvoiceListFilters } from "@/components/invoices/invoice-list-filters";
 import { InvoicesTableWithPolling } from "@/components/invoices/invoices-table-with-polling";
-import { InvoiceFilters } from "@/components/invoices/invoice-filters";
 import { PageHeader } from "@/components/layout/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { getInvoices } from "@/lib/api/server";
@@ -59,16 +58,15 @@ export default async function NotasPage({
       <PageHeader
         title="Notas fiscais"
         description={`${data.total} notas registradas`}
-        actions={
-          <Suspense fallback={<div className="h-9 w-64 animate-pulse rounded-md bg-muted" />}>
-            <InvoiceFilters currentStatus={status} hasActiveFilters={hasActiveFilters} />
-          </Suspense>
-        }
       />
 
       <div className="space-y-3">
         <Suspense fallback={<div className="h-8 w-72 animate-pulse rounded-md bg-muted" />}>
-          <InvoiceDateRangeFilters currentRange={range} />
+          <InvoiceListFilters
+            currentStatus={status}
+            currentRange={range}
+            hasActiveFilters={hasActiveFilters}
+          />
         </Suspense>
 
         <InvoicesTableWithPolling

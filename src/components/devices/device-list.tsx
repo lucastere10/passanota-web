@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -28,6 +29,7 @@ export function DeviceList({
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [revokeTargetId, setRevokeTargetId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function startEdit(device: Device) {
@@ -48,13 +50,14 @@ export function DeviceList({
     });
   }
 
-  function revoke(deviceId: string) {
-    if (!confirm("Revogar este dispositivo? Ele não poderá mais capturar notas.")) return;
+  function confirmRevoke() {
+    if (!revokeTargetId) return;
 
     startTransition(async () => {
       try {
-        await revokeDeviceClient(deviceId);
+        await revokeDeviceClient(revokeTargetId);
         toast.success("Dispositivo revogado.");
+        setRevokeTargetId(null);
         onChanged();
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Erro ao revogar.");
@@ -125,7 +128,7 @@ export function DeviceList({
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      onClick={() => revoke(device.id)}
+                      onClick={() => setRevokeTargetId(device.id)}
                       disabled={isPending}
                       aria-label="Revogar"
                     >
@@ -138,6 +141,18 @@ export function DeviceList({
           ))}
         </TableBody>
       </Table>
+      <ConfirmDialog
+        open={revokeTargetId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRevokeTargetId(null);
+        }}
+        title="Revogar dispositivo?"
+        description="Ele não poderá mais capturar notas."
+        confirmLabel="Revogar"
+        variant="destructive"
+        loading={isPending}
+        onConfirm={confirmRevoke}
+      />
     </div>
   );
 }
