@@ -5,8 +5,7 @@
   "packageManager": "pnpm@8.15.9",
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/copy-opencv.mjs && next build",
-    "postinstall": "node scripts/copy-opencv.mjs",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit"
@@ -15,7 +14,6 @@
     "@base-ui/react": "^1.5.0",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.1",
-    "@techstark/opencv-js": "5.0.0-release.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",

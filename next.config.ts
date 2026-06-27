@@ -11,7 +11,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  allowedDevOrigins: ['d22b-2804-56c-d7d2-3e00-6512-233b-60db-51af.ngrok-free.app'],
   // Next.js 16 uses Turbopack in dev; webpack config is kept for production builds.
   turbopack: {
     resolveAlias: {
