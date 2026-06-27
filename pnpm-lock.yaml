@@ -14,6 +14,9 @@ dependencies:
   '@supabase/supabase-js':
     specifier: ^2.108.1
     version: 2.108.1
+  '@techstark/opencv-js':
+    specifier: 5.0.0-release.1
+    version: 5.0.0-release.1
   class-variance-authority:
     specifier: ^0.7.1
     version: 0.7.1
@@ -1308,6 +1311,10 @@ packages:
       postcss: 8.5.15
       tailwindcss: 4.3.0
     dev: true
+
+  /@techstark/opencv-js@5.0.0-release.1:
+    resolution: {integrity: sha512-PIm+eB0MFtieXoNC2GRao0dv/02sehG+Nv2nSW5D6pQm6J/4WqvDHm0RyoqOmGYQm67jdGiaOdIeTShCY3PIUg==}
+    dev: false
 
   /@ts-morph/common@0.27.0:
     resolution: {integrity: sha512-Wf29UqxWDpc+i61k3oIOzcUfQt79PIT9y/MWfAGlrkjg6lBC1hwDECLXPVJAhWjiGbfBCxZd65F/LIZF3+jeJQ==}
