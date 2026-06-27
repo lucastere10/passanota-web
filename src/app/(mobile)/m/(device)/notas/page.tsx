@@ -1,17 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { StatusBadge } from "@/components/invoices/status-badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { getDeviceInvoicesClient } from "@/lib/api/device-client";
 import type { Invoice } from "@/lib/api/types";
 import { formatCurrency, formatDateTime } from "@/lib/format";
@@ -49,34 +42,32 @@ export default function MobileNotasPage() {
           <p className="text-sm text-muted-foreground">Nenhuma nota capturada ainda.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Emitente</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {invoices.map((invoice) => (
-                <TableRow key={invoice.id}>
-                  <TableCell>{formatDateTime(invoice.issued_at)}</TableCell>
-                  <TableCell>
-                    {invoice.emitter?.trade_name ?? invoice.emitter?.legal_name ?? "—"}
-                  </TableCell>
-                  <TableCell>
+        <ul className="space-y-2">
+          {invoices.map((invoice) => {
+            const emitterName =
+              invoice.emitter?.trade_name ?? invoice.emitter?.legal_name ?? "Emitente não informado";
+
+            return (
+              <li key={invoice.id}>
+                <Link
+                  href={`/m/notas/${invoice.id}`}
+                  className="block rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:bg-muted/40"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="min-w-0 flex-1 truncate text-sm font-medium">{emitterName}</p>
                     <StatusBadge status={invoice.status} />
-                  </TableCell>
-                  <TableCell className="text-right font-mono">
-                    {formatCurrency(invoice.total_amount)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                    <span className="font-mono text-sm font-medium text-foreground">
+                      {formatCurrency(invoice.total_amount)}
+                    </span>
+                    <span className="shrink-0">{formatDateTime(invoice.issued_at)}</span>
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );

@@ -66,6 +66,7 @@ export interface Invoice {
   photo_original_path: string | null;
   photo_processed_path: string | null;
   ai_model: string | null;
+  ai_confidence: string | null;
   extracted_at: string | null;
   status: InvoiceStatus;
   error_message: string | null;

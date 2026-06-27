@@ -4,6 +4,7 @@ import type {
   DeviceMe,
   DevicePairResponse,
   EmpresaPinStatus,
+  Invoice,
   PaginatedInvoices,
   PairingSession,
 } from "@/lib/api/types";
@@ -92,6 +93,10 @@ export async function captureInvoiceDeviceClient(file: File) {
 
   if (!response.ok) throw new Error(await parseError(response));
   return (await response.json()) as CaptureInvoiceResponse;
+}
+
+export async function getInvoiceDeviceClient(id: string) {
+  return deviceFetch<Invoice>(`/v1/devices/me/invoices/${id}`);
 }
 
 export function getDeviceMeClient() {
