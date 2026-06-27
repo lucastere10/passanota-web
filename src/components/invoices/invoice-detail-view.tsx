@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -11,6 +11,7 @@ import { InvoiceEditSheet } from "@/components/invoices/invoice-edit-sheet";
 import { StatusBadge } from "@/components/invoices/status-badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -60,23 +61,41 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
   const [invoice, setInvoice] = useState(initialInvoice);
   const [editOpen, setEditOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteItemTargetId, setDeleteItemTargetId] = useState<string | null>(null);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [itemDraft, setItemDraft] = useState<ItemDraft | null>(null);
   const [isPending, startTransition] = useTransition();
+  const pollFailuresRef = useRef(0);
+
+  const MAX_POLL_FAILURES = 3;
 
   useEffect(() => {
     setInvoice(initialInvoice);
   }, [initialInvoice]);
 
   useEffect(() => {
-    if (invoice.status !== "pending") return;
+    if (invoice.status !== "pending") {
+      pollFailuresRef.current = 0;
+      return;
+    }
 
     const intervalId = window.setInterval(async () => {
+      if (pollFailuresRef.current >= MAX_POLL_FAILURES) {
+        window.clearInterval(intervalId);
+        toast.error("Serviço indisponível. Atualização automática pausada.");
+        return;
+      }
+
       try {
         const updated = await getInvoiceClient(invoice.id);
+        pollFailuresRef.current = 0;
         setInvoice(updated);
       } catch {
-        // keep polling on transient errors
+        pollFailuresRef.current += 1;
+        if (pollFailuresRef.current >= MAX_POLL_FAILURES) {
+          window.clearInterval(intervalId);
+          toast.error("Serviço indisponível. Atualização automática pausada.");
+        }
       }
     }, 5000);
 
@@ -91,10 +110,27 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
       try {
         await deleteInvoiceClient(invoice.id);
         toast.success("Nota excluída.");
+        setConfirmDelete(false);
         router.push("/notas");
         router.refresh();
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Erro ao excluir nota.");
+      }
+    });
+  }
+
+  function confirmDeleteItem() {
+    if (!deleteItemTargetId) return;
+
+    startTransition(async () => {
+      try {
+        await deleteInvoiceItemClient(invoice.id, deleteItemTargetId);
+        const updated = await getInvoiceClient(invoice.id);
+        setInvoice(updated);
+        setDeleteItemTargetId(null);
+        toast.success("Item excluído.");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Erro ao excluir item.");
       }
     });
   }
@@ -126,18 +162,7 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
   }
 
   function handleDeleteItem(itemId: string) {
-    if (!window.confirm("Excluir este item?")) return;
-
-    startTransition(async () => {
-      try {
-        await deleteInvoiceItemClient(invoice.id, itemId);
-        const updated = await getInvoiceClient(invoice.id);
-        setInvoice(updated);
-        toast.success("Item excluído.");
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Erro ao excluir item.");
-      }
-    });
+    setDeleteItemTargetId(itemId);
   }
 
   return (
@@ -172,32 +197,30 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
         </div>
       </div>
 
-      {confirmDelete ? (
-        <Alert variant="destructive">
-          <AlertTitle>Excluir nota fiscal?</AlertTitle>
-          <AlertDescription className="mt-2 space-y-3">
-            <p>Esta ação não pode ser desfeita.</p>
-            <div className="flex gap-2">
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleDelete}
-                disabled={isPending}
-              >
-                Confirmar exclusão
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setConfirmDelete(false)}
-                disabled={isPending}
-              >
-                Cancelar
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      ) : null}
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Excluir nota fiscal?"
+        description="Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        variant="destructive"
+        loading={isPending}
+        onConfirm={handleDelete}
+      />
+
+      <ConfirmDialog
+        open={deleteItemTargetId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteItemTargetId(null);
+        }}
+        title="Excluir item?"
+        description="O item será removido permanentemente desta nota."
+        confirmLabel="Excluir"
+        variant="destructive"
+        loading={isPending}
+        onConfirm={confirmDeleteItem}
+      />
 
       {invoice.status === "pending" ? (
         <Alert>

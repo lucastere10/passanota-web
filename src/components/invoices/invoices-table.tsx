@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 
+import { InvoiceDeleteButton } from "@/components/invoices/invoice-delete-button";
 import { StatusBadge } from "@/components/invoices/status-badge";
 import {
   Table,
@@ -122,6 +123,7 @@ export function InvoicesTable({
             <TableHead className="text-right text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Total
             </TableHead>
+            <TableHead className="w-[52px]" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -150,6 +152,9 @@ export function InvoicesTable({
                 </TableCell>
                 <TableCell className="text-right text-sm font-medium tabular-nums">
                   {formatCurrency(invoice.total_amount)}
+                </TableCell>
+                <TableCell className="text-right">
+                  <InvoiceDeleteButton invoiceId={invoice.id} status={invoice.status} />
                 </TableCell>
               </TableRow>
             );

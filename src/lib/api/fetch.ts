@@ -1,5 +1,6 @@
 import type { ApiError } from "@/lib/api/types";
 
+import { ApiUnavailableError, UnauthorizedError } from "@/lib/api/errors";
 import { getApiUrl } from "@/lib/api/env";
 import { withApiGatewayHeaders } from "@/lib/api/id-token";
 import { getAuthHeaders } from "@/lib/auth/session";
@@ -58,15 +59,24 @@ export async function fetchFromApi<T>(
 
   const gatewayHeaders = await withApiGatewayHeaders(headers);
 
-  const response = await fetch(buildUrl(path, searchParams), {
-    method,
-    headers: gatewayHeaders,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-    cache: "no-store",
-  });
+  let response: Response;
+  try {
+    response = await fetch(buildUrl(path, searchParams), {
+      method,
+      headers: gatewayHeaders,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      cache: "no-store",
+    });
+  } catch {
+    throw new ApiUnavailableError();
+  }
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    const message = await parseError(response);
+    if (response.status === 401) {
+      throw new UnauthorizedError(message);
+    }
+    throw new Error(message);
   }
 
   if (response.status === 204) {
