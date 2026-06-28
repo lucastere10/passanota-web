@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { StatusBadge } from "@/components/invoices/status-badge";
+import { ConfidenceBadge } from "@/components/invoices/confidence-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -43,7 +44,12 @@ export function ExtractionResults({ result }: ExtractionResultsProps) {
             {preprocess_skipped ? " · pré-processamento simplificado" : ""}
           </p>
         </div>
-        <StatusBadge status={invoice.status} />
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge status={invoice.status} />
+          {invoice.ai_confidence ? (
+            <ConfidenceBadge value={invoice.ai_confidence} />
+          ) : null}
+        </div>
       </div>
 
       {processed_image_url ? (
@@ -69,6 +75,7 @@ export function ExtractionResults({ result }: ExtractionResultsProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Descrição</TableHead>
+                  <TableHead>Categoria</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                 </TableRow>
               </TableHeader>
@@ -76,6 +83,9 @@ export function ExtractionResults({ result }: ExtractionResultsProps) {
                 {invoice.items.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>{item.description}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {item.category_name ?? "Outros"}
+                    </TableCell>
                     <TableCell className="text-right font-mono">
                       {formatCurrency(item.total_price)}
                     </TableCell>

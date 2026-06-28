@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 
 import type { CaptureQueueItem } from "@/lib/scan/detection-types";
+import { ConfidenceBadge } from "@/components/invoices/confidence-badge";
 import { cn } from "@/lib/utils";
 
 type CaptureQueueProps = {
@@ -96,9 +97,9 @@ function QueueThumbnail({
         <div className="space-y-0.5">
           {content}
           {item.invoice?.ai_confidence && size === "md" ? (
-            <p className="text-center text-[10px] font-medium text-green-600">
-              {Math.round(Number(item.invoice.ai_confidence) * 100)}%
-            </p>
+            <div className="flex justify-center">
+              <ConfidenceBadge value={item.invoice.ai_confidence} size="sm" />
+            </div>
           ) : null}
         </div>
       </Link>

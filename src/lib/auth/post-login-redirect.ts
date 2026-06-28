@@ -8,7 +8,7 @@ export function resolvePostLoginPath(me: AuthMeResponse, next = "/dashboard"): s
   }
 
   if (me.is_platform_admin && me.empresas.length === 0) {
-    return "/admin/empresas";
+    return "/admin/overview";
   }
 
   return safeNext;

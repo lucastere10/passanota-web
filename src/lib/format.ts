@@ -52,6 +52,35 @@ export function formatSimilarity(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
+export type ConfidenceTier = "high" | "medium" | "low";
+
+export function parseConfidence(value: string | number | null | undefined): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const num = typeof value === "number" ? value : Number.parseFloat(value);
+  if (Number.isNaN(num)) return null;
+  return num;
+}
+
+export function formatConfidencePercent(value: string | number | null | undefined): string | null {
+  const num = parseConfidence(value);
+  if (num === null) return null;
+  return `${Math.round(num * 100)}%`;
+}
+
+export function getConfidenceTier(value: string | number | null | undefined): ConfidenceTier | null {
+  const num = parseConfidence(value);
+  if (num === null) return null;
+  if (num >= 0.8) return "high";
+  if (num >= 0.5) return "medium";
+  return "low";
+}
+
+export const CONFIDENCE_TIER_LABELS: Record<ConfidenceTier, string> = {
+  high: "Alta confiança",
+  medium: "Revisar extração",
+  low: "Revisão necessária",
+};
+
 export const PERIOD_LABELS: Record<string, string> = {
   "7d": "7 dias",
   "30d": "30 dias",

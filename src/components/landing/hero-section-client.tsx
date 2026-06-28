@@ -44,7 +44,7 @@ export function HeroSectionClient() {
             className="animate-fade-in max-w-md text-lg leading-relaxed text-muted-foreground"
             style={{ animationDelay: "160ms" }}
           >
-            Fotografe notas fiscais no desktop ou no celular pareado. O PassaNota extrai os dados
+            Fotografe notas fiscais no computador ou celular. <b>PassaNOTA</b> extrai os dados
             automaticamente e transforma cada compra em visibilidade sobre onde o dinheiro da sua
             empresa está indo.
           </p>

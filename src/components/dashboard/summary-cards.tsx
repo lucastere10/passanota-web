@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 
+import { ConfidenceBadge } from "@/components/invoices/confidence-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DashboardSummary } from "@/lib/api/types";
 import { formatCurrency, formatDate, formatPercent } from "@/lib/format";
@@ -69,6 +70,7 @@ export function RecentInvoicesTable({
     issued_at: string | null;
     total_amount: string | null;
     status: string;
+    ai_confidence?: string | null;
     emitter?: { trade_name?: string | null; legal_name?: string | null } | null;
   }>;
 }) {
@@ -91,6 +93,7 @@ export function RecentInvoicesTable({
             <th className="px-4 py-3 font-medium">Registro</th>
             <th className="px-4 py-3 font-medium">Emissão</th>
             <th className="px-4 py-3 font-medium">Emitente</th>
+            <th className="px-4 py-3 font-medium">IA</th>
             <th className="px-4 py-3 font-medium text-right">Total</th>
           </tr>
         </thead>
@@ -105,6 +108,13 @@ export function RecentInvoicesTable({
               <td className="px-4 py-3 tabular-nums">{formatDate(invoice.issued_at)}</td>
               <td className="px-4 py-3">
                 {invoice.emitter?.trade_name ?? invoice.emitter?.legal_name ?? "—"}
+              </td>
+              <td className="px-4 py-3">
+                {invoice.status === "parsed" && invoice.ai_confidence ? (
+                  <ConfidenceBadge value={invoice.ai_confidence} size="sm" />
+                ) : (
+                  "—"
+                )}
               </td>
               <td className="px-4 py-3 text-right font-mono">{formatCurrency(invoice.total_amount)}</td>
             </tr>

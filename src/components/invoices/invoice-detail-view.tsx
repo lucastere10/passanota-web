@@ -7,6 +7,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { CopyAccessKey } from "@/components/invoices/copy-access-key";
+import { ConfidenceBadge } from "@/components/invoices/confidence-badge";
 import { InvoiceEditSheet } from "@/components/invoices/invoice-edit-sheet";
 import { StatusBadge } from "@/components/invoices/status-badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -14,6 +15,13 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -26,16 +34,18 @@ import {
 import {
   deleteInvoiceClient,
   deleteInvoiceItemClient,
+  getCategoriesClient,
   getInvoiceClient,
   updateInvoiceItemClient,
 } from "@/lib/api/client";
-import type { Invoice, InvoiceItem } from "@/lib/api/types";
+import type { Category, Invoice, InvoiceItem } from "@/lib/api/types";
 import {
   formatAccessKey,
   formatCnpj,
   formatCurrency,
   formatDate,
   formatDateTime,
+  getConfidenceTier,
 } from "@/lib/format";
 
 type ItemDraft = {
@@ -44,6 +54,7 @@ type ItemDraft = {
   unit: string;
   unit_price: string;
   total_price: string;
+  category_id: string;
 };
 
 function itemToDraft(item: InvoiceItem): ItemDraft {
@@ -53,6 +64,7 @@ function itemToDraft(item: InvoiceItem): ItemDraft {
     unit: item.unit ?? "",
     unit_price: item.unit_price ?? "",
     total_price: item.total_price ?? "",
+    category_id: item.category_id ?? "",
   };
 }
 
@@ -64,6 +76,7 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
   const [deleteItemTargetId, setDeleteItemTargetId] = useState<string | null>(null);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [itemDraft, setItemDraft] = useState<ItemDraft | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isPending, startTransition] = useTransition();
   const pollFailuresRef = useRef(0);
 
@@ -72,6 +85,14 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
   useEffect(() => {
     setInvoice(initialInvoice);
   }, [initialInvoice]);
+
+  useEffect(() => {
+    void getCategoriesClient()
+      .then((response) => setCategories(response.data))
+      .catch(() => {
+        // categories are optional for read-only view
+      });
+  }, []);
 
   useEffect(() => {
     if (invoice.status !== "pending") {
@@ -104,6 +125,7 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
 
   const emitterName =
     invoice.emitter?.trade_name ?? invoice.emitter?.legal_name ?? "Nota fiscal";
+  const confidenceTier = getConfidenceTier(invoice.ai_confidence);
 
   function handleDelete() {
     startTransition(async () => {
@@ -150,7 +172,14 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
 
     startTransition(async () => {
       try {
-        await updateInvoiceItemClient(invoice.id, itemId, itemDraft);
+        await updateInvoiceItemClient(invoice.id, itemId, {
+          description: itemDraft.description,
+          quantity: itemDraft.quantity || null,
+          unit: itemDraft.unit || null,
+          unit_price: itemDraft.unit_price || null,
+          total_price: itemDraft.total_price || null,
+          category_id: itemDraft.category_id || null,
+        });
         const updated = await getInvoiceClient(invoice.id);
         setInvoice(updated);
         cancelEditItem();
@@ -238,6 +267,28 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
         </Alert>
       ) : null}
 
+      {invoice.status === "parsed" && confidenceTier && confidenceTier !== "high" ? (
+        <Alert
+          className={
+            confidenceTier === "medium"
+              ? "border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200"
+              : undefined
+          }
+          variant={confidenceTier === "low" ? "destructive" : "default"}
+        >
+          <AlertTitle>
+            {confidenceTier === "medium" ? "Confiança média da IA" : "Baixa confiança da IA"}
+          </AlertTitle>
+          <AlertDescription className="flex flex-wrap items-center gap-2">
+            <ConfidenceBadge value={invoice.ai_confidence} showTooltip={false} />
+            <span>Revise os dados extraídos antes de confiar nos relatórios.</span>
+            <Button variant="link" className="h-auto p-0" onClick={() => setEditOpen(true)}>
+              Editar nota
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
@@ -257,6 +308,7 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
                 <TableHeader>
                   <TableRow>
                     <TableHead>Descrição</TableHead>
+                    <TableHead>Categoria</TableHead>
                     <TableHead>Qtd</TableHead>
                     <TableHead>Un</TableHead>
                     <TableHead className="text-right">Unit.</TableHead>
@@ -279,6 +331,25 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
                               }
                               className="h-8"
                             />
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={itemDraft.category_id || undefined}
+                              onValueChange={(value) =>
+                                setItemDraft({ ...itemDraft, category_id: value ?? "" })
+                              }
+                            >
+                              <SelectTrigger className="h-8 w-[140px]">
+                                <SelectValue placeholder="Categoria" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {categories.map((category) => (
+                                  <SelectItem key={category.id} value={category.id}>
+                                    {category.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell>
                             <Input
@@ -345,6 +416,9 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
                     return (
                       <TableRow key={item.id}>
                         <TableCell>{item.description}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {item.category_name ?? "Outros"}
+                        </TableCell>
                         <TableCell className="font-mono">{item.quantity ?? "—"}</TableCell>
                         <TableCell>{item.unit ?? "—"}</TableCell>
                         <TableCell className="text-right font-mono">
@@ -430,6 +504,12 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
                   <div>
                     <p className="text-muted-foreground">Modelo IA</p>
                     <p>{invoice.ai_model}</p>
+                  </div>
+                ) : null}
+                {invoice.ai_confidence ? (
+                  <div>
+                    <p className="text-muted-foreground">Confiança da IA</p>
+                    <ConfidenceBadge value={invoice.ai_confidence} />
                   </div>
                 ) : null}
                 {invoice.access_key ? (

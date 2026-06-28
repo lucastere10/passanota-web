@@ -5,6 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { StatusBadge } from "@/components/invoices/status-badge";
+import { ConfidenceBadge } from "@/components/invoices/confidence-badge";
 import { getDeviceInvoicesClient } from "@/lib/api/device-client";
 import type { Invoice } from "@/lib/api/types";
 import { formatCurrency, formatDateTime } from "@/lib/format";
@@ -55,7 +56,12 @@ export default function MobileNotasPage() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <p className="min-w-0 flex-1 truncate text-sm font-medium">{emitterName}</p>
-                    <StatusBadge status={invoice.status} />
+                    <div className="flex shrink-0 items-center gap-2">
+                      {invoice.status === "parsed" && invoice.ai_confidence ? (
+                        <ConfidenceBadge value={invoice.ai_confidence} size="sm" />
+                      ) : null}
+                      <StatusBadge status={invoice.status} />
+                    </div>
                   </div>
                   <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
                     <span className="font-mono text-sm font-medium text-foreground">

@@ -1,6 +1,7 @@
 import type {
   ApiError,
   CaptureInvoiceResponse,
+  CategoryListResponse,
   Invoice,
   InvoiceItem,
   SemanticSearchResponse,
@@ -102,6 +103,10 @@ export function updateInvoiceClient(id: string, data: UpdateInvoiceRequest) {
 
 export function deleteInvoiceClient(id: string) {
   return clientFetch<void>(`/v1/invoices/${id}`, { method: "DELETE" });
+}
+
+export function getCategoriesClient() {
+  return clientFetch<CategoryListResponse>("/v1/categories");
 }
 
 export function updateInvoiceItemClient(

@@ -37,7 +37,7 @@ export default function CompleteProfilePage() {
             role: me.pending_invite.role,
           });
         } else if (me.is_platform_admin) {
-          router.replace("/admin/empresas");
+          router.replace("/admin/overview");
           return;
         } else {
           router.replace("/login");
