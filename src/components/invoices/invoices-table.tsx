@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 
+import { ConfidenceBadge } from "@/components/invoices/confidence-badge";
 import { InvoiceDeleteButton } from "@/components/invoices/invoice-delete-button";
 import { StatusBadge } from "@/components/invoices/status-badge";
 import {
@@ -120,6 +121,9 @@ export function InvoicesTable({
               range={range}
               className="text-xs font-medium uppercase tracking-wide"
             />
+            <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              IA
+            </TableHead>
             <TableHead className="text-right text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Total
             </TableHead>
@@ -149,6 +153,13 @@ export function InvoicesTable({
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={invoice.status} />
+                </TableCell>
+                <TableCell>
+                  {invoice.status === "parsed" && invoice.ai_confidence ? (
+                    <ConfidenceBadge value={invoice.ai_confidence} />
+                  ) : (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  )}
                 </TableCell>
                 <TableCell className="text-right text-sm font-medium tabular-nums">
                   {formatCurrency(invoice.total_amount)}

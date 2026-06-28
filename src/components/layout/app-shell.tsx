@@ -11,8 +11,8 @@ import {
   ChevronRight,
   FileText,
   Search,
-  Settings,
   Shield,
+  Smartphone,
 } from "lucide-react";
 
 import { BrandLogo } from "@/components/layout/brand-logo";
@@ -143,15 +143,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <NavLink
               href="/configuracoes/dispositivos"
               label="Dispositivos"
-              icon={Settings}
-              active={pathname.startsWith("/configuracoes")}
+              icon={Smartphone}
+              active={pathname.startsWith("/configuracoes/dispositivos")}
               collapsed={sidebarCollapsed}
             />
           )}
 
           {me?.is_platform_admin && (
             <NavLink
-              href="/admin/empresas"
+              href="/admin/overview"
               label="Admin"
               icon={Shield}
               active={pathname.startsWith("/admin")}

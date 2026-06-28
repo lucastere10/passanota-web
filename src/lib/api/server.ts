@@ -8,6 +8,8 @@ import type {
   RecentInvoices,
   SemanticSearchResponse,
   SpendOverTime,
+  SpendOverTimeByCategory,
+  StackedBreakdown,
   TopProducts,
 } from "@/lib/api/types";
 
@@ -25,6 +27,18 @@ export async function getSpendOverTime(period: Period = "30d", granularity = "da
 
 export async function getTopEmitters(period: Period = "30d", limit = 10) {
   return fetchFromApi<Breakdown>("/v1/dashboard/top-emitters", {
+    searchParams: { period, limit },
+  });
+}
+
+export async function getSpendOverTimeByCategory(period: Period = "30d", granularity = "day") {
+  return fetchFromApi<SpendOverTimeByCategory>("/v1/dashboard/spend-over-time-by-category", {
+    searchParams: { period, granularity },
+  });
+}
+
+export async function getTopEmittersByCategory(period: Period = "30d", limit = 10) {
+  return fetchFromApi<StackedBreakdown>("/v1/dashboard/top-emitters-by-category", {
     searchParams: { period, limit },
   });
 }
@@ -73,19 +87,34 @@ export async function searchSemantic(query: string, limit = 20) {
 }
 
 export async function getDashboardData(period: Period = "30d") {
-  const [summary, spendOverTime, topEmitters, spendByCategory, recent] = await Promise.all([
+  const [
+    summary,
+    spendOverTime,
+    spendByCategoryStacked,
+    topEmitters,
+    topEmittersStacked,
+    spendByCategory,
+    topProducts,
+    recent,
+  ] = await Promise.all([
     getDashboardSummary(period),
     getSpendOverTime(period),
+    getSpendOverTimeByCategory(period),
     getTopEmitters(period),
+    getTopEmittersByCategory(period),
     getSpendByCategory(period),
+    getTopProducts(period),
     getRecentInvoices(8),
   ]);
 
   return {
     summary,
     spendOverTime,
+    spendByCategoryStacked,
     topEmitters,
+    topEmittersStacked,
     spendByCategory,
+    topProducts,
     recent,
   };
 }

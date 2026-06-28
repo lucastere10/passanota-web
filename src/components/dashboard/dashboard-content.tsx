@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
+import {
+  AvgTicketChart,
+  CategoryPieChart,
+  InvoiceVolumeChart,
+  TopProductsChart,
+} from "@/components/dashboard/charts";
+import { DashboardChartsSection } from "@/components/dashboard/dashboard-charts-section";
 import { PeriodSelector } from "@/components/dashboard/period-selector";
-import { BreakdownList, SpendOverTimeChart } from "@/components/dashboard/charts";
 import { RecentInvoicesTable, SummaryCards } from "@/components/dashboard/summary-cards";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,31 +33,51 @@ export async function DashboardContent({ period }: { period: Period }) {
 
       <SummaryCards summary={data.summary} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Gastos ao longo do tempo</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SpendOverTimeChart data={data.spendOverTime} />
-        </CardContent>
-      </Card>
+      <DashboardChartsSection
+        period={period}
+        spendByCategory={data.spendByCategory}
+        initialSpendOverTime={data.spendOverTime}
+        initialTopEmitters={data.topEmitters}
+        initialSpendByCategoryStacked={data.spendByCategoryStacked}
+        initialTopEmittersStacked={data.topEmittersStacked}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Top estabelecimentos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BreakdownList title="Top estabelecimentos" data={data.topEmitters} variant="bar" />
-          </CardContent>
-        </Card>
-
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Gastos por categoria</CardTitle>
           </CardHeader>
           <CardContent>
-            <BreakdownList title="Categorias" data={data.spendByCategory} variant="pie" />
+            <CategoryPieChart data={data.spendByCategory} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Top produtos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TopProductsChart data={data.topProducts} />
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Volume de notas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <InvoiceVolumeChart data={data.spendOverTime} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Ticket médio por dia</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AvgTicketChart data={data.spendOverTime} />
           </CardContent>
         </Card>
       </div>

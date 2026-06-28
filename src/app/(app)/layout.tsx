@@ -31,7 +31,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   if (me.empresas.length === 0 && me.is_platform_admin) {
-    redirect("/admin/empresas");
+    redirect("/admin/overview");
   }
 
   if (me.empresas.length === 0) {
