@@ -1,18 +1,14 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
 import {
   CategoryFilterChips,
   type CategoryFilterOption,
 } from "@/components/dashboard/category-filter-chips";
-import {
-  RankedBreakdownChart,
-  SpendOverTimeChart,
-  StackedEmittersChart,
-  StackedSpendOverTimeChart,
-} from "@/components/dashboard/charts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   getSpendOverTimeByCategoryClient,
   getSpendOverTimeClient,
@@ -26,6 +22,28 @@ import type {
   SpendOverTimeByCategory,
   StackedBreakdown,
 } from "@/lib/api/types";
+
+const chartSkeleton = <Skeleton className="h-[280px] w-full" />;
+
+const SpendOverTimeChart = dynamic(
+  () => import("@/components/dashboard/charts").then((m) => m.SpendOverTimeChart),
+  { loading: () => chartSkeleton, ssr: false },
+);
+
+const StackedSpendOverTimeChart = dynamic(
+  () => import("@/components/dashboard/charts").then((m) => m.StackedSpendOverTimeChart),
+  { loading: () => chartSkeleton, ssr: false },
+);
+
+const RankedBreakdownChart = dynamic(
+  () => import("@/components/dashboard/charts").then((m) => m.RankedBreakdownChart),
+  { loading: () => chartSkeleton, ssr: false },
+);
+
+const StackedEmittersChart = dynamic(
+  () => import("@/components/dashboard/charts").then((m) => m.StackedEmittersChart),
+  { loading: () => chartSkeleton, ssr: false },
+);
 
 type DashboardChartsSectionProps = {
   period: Period;

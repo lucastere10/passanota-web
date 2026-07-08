@@ -1,6 +1,9 @@
+import { unstable_cache } from "next/cache";
+
 import { fetchFromApi } from "@/lib/api/fetch";
 import type {
   Breakdown,
+  DashboardAllResponse,
   DashboardSummary,
   Invoice,
   PaginatedInvoices,
@@ -12,6 +15,7 @@ import type {
   StackedBreakdown,
   TopProducts,
 } from "@/lib/api/types";
+import { getAuthHeaders } from "@/lib/auth/session";
 
 export async function getDashboardSummary(period: Period = "30d") {
   return fetchFromApi<DashboardSummary>("/v1/dashboard/summary", {
@@ -86,35 +90,42 @@ export async function searchSemantic(query: string, limit = 20) {
   });
 }
 
+const getCachedDashboardAll = unstable_cache(
+  async (period: Period, empresaId: string, authorization: string) => {
+    return fetchFromApi<DashboardAllResponse>("/v1/dashboard", {
+      searchParams: { period },
+      headers: {
+        Authorization: authorization,
+        "X-Empresa-Id": empresaId,
+      },
+    });
+  },
+  ["dashboard-all"],
+  { revalidate: 30 },
+);
+
 export async function getDashboardData(period: Period = "30d") {
-  const [
-    summary,
-    spendOverTime,
-    spendByCategoryStacked,
-    topEmitters,
-    topEmittersStacked,
-    spendByCategory,
-    topProducts,
-    recent,
-  ] = await Promise.all([
-    getDashboardSummary(period),
-    getSpendOverTime(period),
-    getSpendOverTimeByCategory(period),
-    getTopEmitters(period),
-    getTopEmittersByCategory(period),
-    getSpendByCategory(period),
-    getTopProducts(period),
-    getRecentInvoices(8),
-  ]);
+  const authHeaders = (await getAuthHeaders()) as Record<string, string>;
+  const empresaId = authHeaders["X-Empresa-Id"];
+  const authorization = authHeaders.Authorization;
+
+  if (!empresaId) {
+    throw new Error("Empresa não selecionada");
+  }
+  if (!authorization) {
+    throw new Error("Sessão expirada ou inválida");
+  }
+
+  const data = await getCachedDashboardAll(period, empresaId, authorization);
 
   return {
-    summary,
-    spendOverTime,
-    spendByCategoryStacked,
-    topEmitters,
-    topEmittersStacked,
-    spendByCategory,
-    topProducts,
-    recent,
+    summary: data.summary,
+    spendOverTime: data.spend_over_time,
+    spendByCategoryStacked: data.spend_by_category_stacked,
+    topEmitters: data.top_emitters,
+    topEmittersStacked: data.top_emitters_stacked,
+    spendByCategory: data.spend_by_category,
+    topProducts: data.top_products,
+    recent: data.recent,
   };
 }
