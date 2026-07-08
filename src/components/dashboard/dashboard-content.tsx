@@ -1,13 +1,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
-import {
-  AvgTicketChart,
-  CategoryPieChart,
-  InvoiceVolumeChart,
-  TopProductsChart,
-} from "@/components/dashboard/charts";
 import { DashboardChartsSection } from "@/components/dashboard/dashboard-charts-section";
+import { DashboardSecondaryCharts } from "@/components/dashboard/dashboard-secondary-charts";
 import { PeriodSelector } from "@/components/dashboard/period-selector";
 import { RecentInvoicesTable, SummaryCards } from "@/components/dashboard/summary-cards";
 import { PageHeader } from "@/components/layout/page-header";
@@ -42,45 +37,11 @@ export async function DashboardContent({ period }: { period: Period }) {
         initialTopEmittersStacked={data.topEmittersStacked}
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Gastos por categoria</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CategoryPieChart data={data.spendByCategory} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Top produtos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <TopProductsChart data={data.topProducts} />
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Volume de notas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <InvoiceVolumeChart data={data.spendOverTime} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Ticket médio por dia</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <AvgTicketChart data={data.spendOverTime} />
-          </CardContent>
-        </Card>
-      </div>
+      <DashboardSecondaryCharts
+        spendByCategory={data.spendByCategory}
+        topProducts={data.topProducts}
+        spendOverTime={data.spendOverTime}
+      />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">

@@ -10,6 +10,7 @@ type FetchOptions = {
   body?: unknown;
   searchParams?: Record<string, string | number | undefined | null>;
   auth?: boolean;
+  headers?: Record<string, string>;
 };
 
 function buildUrl(path: string, searchParams?: FetchOptions["searchParams"]): string {
@@ -42,15 +43,19 @@ async function parseError(response: Response): Promise<string> {
 
 export async function fetchFromApi<T>(
   path: string,
-  { method = "GET", body, searchParams, auth = true }: FetchOptions = {},
+  { method = "GET", body, searchParams, auth = true, headers: extraHeaders }: FetchOptions = {},
 ): Promise<T> {
   const headers: Record<string, string> = {
     Accept: "application/json",
   };
 
   if (auth) {
-    const authHeaders = await getAuthHeaders();
-    Object.assign(headers, authHeaders);
+    if (extraHeaders) {
+      Object.assign(headers, extraHeaders);
+    } else {
+      const authHeaders = await getAuthHeaders();
+      Object.assign(headers, authHeaders);
+    }
   }
 
   if (body !== undefined) {

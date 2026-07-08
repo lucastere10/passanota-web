@@ -157,6 +157,17 @@ export interface RecentInvoices {
   data: Invoice[];
 }
 
+export interface DashboardAllResponse {
+  summary: DashboardSummary;
+  spend_over_time: SpendOverTime;
+  spend_by_category_stacked: SpendOverTimeByCategory;
+  top_emitters: Breakdown;
+  top_emitters_stacked: StackedBreakdown;
+  spend_by_category: Breakdown;
+  top_products: TopProducts;
+  recent: RecentInvoices;
+}
+
 export interface SemanticSearchResult {
   item_id: string;
   invoice_id: string;
