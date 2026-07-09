@@ -35,7 +35,6 @@ steps:
         pnpm install --frozen-lockfile
         pnpm lint
         pnpm typecheck
-    waitFor: [validate]
 
   - id: build
     name: gcr.io/cloud-builders/docker
