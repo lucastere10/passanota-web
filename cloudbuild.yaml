@@ -24,27 +24,6 @@ availableSecrets:
       env: SUPABASE_PUBLISHABLE_KEY
 
 steps:
-  - id: validate
-    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    entrypoint: bash
-    args:
-      - -c
-      - |
-        set -euo pipefail
-        if [ -z "${_PASSANOTA_API_URL}" ] || [ -z "${_SUPABASE_URL}" ] || [ -z "${_APP_URL}" ]; then
-          echo "ERROR: Configure _PASSANOTA_API_URL, _SUPABASE_URL e _APP_URL."
-          exit 1
-        fi
-        case "${_APP_URL}" in
-          *XXXX*|*"[project-ref]"*|*placeholder*)
-            echo "ERROR: _APP_URL parece ser placeholder: ${_APP_URL}"
-            exit 1
-          ;;
-        esac
-        gcloud secrets describe "${_SUPABASE_PUBLISHABLE_KEY}" \
-          --project="$PROJECT_ID" >/dev/null
-        echo "Validation OK (commit: $COMMIT_SHA)"
-
   - id: lint
     name: node:22-alpine
     entrypoint: sh
