@@ -98,7 +98,7 @@ steps:
       - --max-instances
       - "5"
       - --set-env-vars
-      - ^|^NODE_ENV=production|PASSANOTA_API_URL=${_PASSANOTA_API_URL}|SUPABASE_URL=${_SUPABASE_URL}|NEXT_PUBLIC_SUPABASE_URL=${_SUPABASE_URL}|NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${_SUPABASE_PUBLISHABLE_KEY}|NEXT_PUBLIC_APP_URL=${_APP_URL}
+      - ^|^NODE_ENV=production|PASSANOTA_API_URL=${_PASSANOTA_API_URL}
     waitFor: [push]
 
 images:
