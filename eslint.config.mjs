@@ -12,7 +12,14 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "public/opencv/**",
   ]),
+  {
+    rules: {
+      // Valid patterns (hydration guards, localStorage, keyed resets) — too noisy as error.
+      "react-hooks/set-state-in-effect": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;
