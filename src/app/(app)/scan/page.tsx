@@ -6,7 +6,7 @@ export default function ScanPage() {
     <div className="space-y-6">
       <PageHeader
         title="Capturar nota fiscal"
-        description="Tire uma foto da nota para extrair os dados automaticamente."
+        description="Envie uma foto da nota para extrair os dados automaticamente."
       />
       <ScanPanel />
     </div>

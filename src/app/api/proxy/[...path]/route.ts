@@ -47,6 +47,10 @@ async function proxyRequest(request: NextRequest, pathSegments: string[]) {
     cache: "no-store",
   });
 
+  if (response.status === 204 || response.status === 205) {
+    return new NextResponse(null, { status: response.status });
+  }
+
   const contentType = response.headers.get("Content-Type") ?? "application/json";
   const payload = await response.text();
 

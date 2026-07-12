@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { DashboardChartsSection } from "@/components/dashboard/dashboard-charts-section";
+import { DashboardSecondaryCharts } from "@/components/dashboard/dashboard-secondary-charts";
 import { PeriodSelector } from "@/components/dashboard/period-selector";
-import { BreakdownList, SpendOverTimeChart } from "@/components/dashboard/charts";
 import { RecentInvoicesTable, SummaryCards } from "@/components/dashboard/summary-cards";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,34 +28,20 @@ export async function DashboardContent({ period }: { period: Period }) {
 
       <SummaryCards summary={data.summary} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Gastos ao longo do tempo</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SpendOverTimeChart data={data.spendOverTime} />
-        </CardContent>
-      </Card>
+      <DashboardChartsSection
+        period={period}
+        spendByCategory={data.spendByCategory}
+        initialSpendOverTime={data.spendOverTime}
+        initialTopEmitters={data.topEmitters}
+        initialSpendByCategoryStacked={data.spendByCategoryStacked}
+        initialTopEmittersStacked={data.topEmittersStacked}
+      />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Top estabelecimentos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BreakdownList title="Top estabelecimentos" data={data.topEmitters} variant="bar" />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Gastos por categoria</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BreakdownList title="Categorias" data={data.spendByCategory} variant="pie" />
-          </CardContent>
-        </Card>
-      </div>
+      <DashboardSecondaryCharts
+        spendByCategory={data.spendByCategory}
+        topProducts={data.topProducts}
+        spendOverTime={data.spendOverTime}
+      />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">

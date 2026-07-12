@@ -47,6 +47,8 @@ export interface InvoiceItem {
   unit_price: string | null;
   total_price: string | null;
   category_id: string | null;
+  category_name: string | null;
+  category_slug: string | null;
 }
 
 export interface Invoice {
@@ -66,6 +68,7 @@ export interface Invoice {
   photo_original_path: string | null;
   photo_processed_path: string | null;
   ai_model: string | null;
+  ai_confidence: string | null;
   extracted_at: string | null;
   status: InvoiceStatus;
   error_message: string | null;
@@ -105,10 +108,38 @@ export interface BreakdownItem {
   amount: string;
   percentage: number;
   count: number;
+  slug?: string | null;
 }
 
 export interface Breakdown {
   items: BreakdownItem[];
+}
+
+export interface StackedSegment {
+  label: string;
+  slug?: string | null;
+  amount: string;
+}
+
+export interface StackedBreakdownItem {
+  label: string;
+  total: string;
+  segments: StackedSegment[];
+}
+
+export interface StackedBreakdown {
+  items: StackedBreakdownItem[];
+  categories: string[];
+}
+
+export interface SpendOverTimeByCategoryPoint {
+  date: string;
+  segments: StackedSegment[];
+}
+
+export interface SpendOverTimeByCategory {
+  points: SpendOverTimeByCategoryPoint[];
+  categories: string[];
 }
 
 export interface TopProductItem {
@@ -124,6 +155,17 @@ export interface TopProducts {
 
 export interface RecentInvoices {
   data: Invoice[];
+}
+
+export interface DashboardAllResponse {
+  summary: DashboardSummary;
+  spend_over_time: SpendOverTime;
+  spend_by_category_stacked: SpendOverTimeByCategory;
+  top_emitters: Breakdown;
+  top_emitters_stacked: StackedBreakdown;
+  spend_by_category: Breakdown;
+  top_products: TopProducts;
+  recent: RecentInvoices;
 }
 
 export interface SemanticSearchResult {
@@ -149,6 +191,33 @@ export interface CaptureInvoiceResponse {
     data: string | null;
     item_count: number;
   };
+  processing_note?: string;
+}
+
+export interface UpdateInvoiceRequest {
+  issued_at?: string | null;
+  total_amount?: string | null;
+  discount_amount?: string | null;
+  emitter_name?: string | null;
+}
+
+export interface UpdateInvoiceItemRequest {
+  description?: string | null;
+  quantity?: string | null;
+  unit_price?: string | null;
+  total_price?: string | null;
+  unit?: string | null;
+  category_id?: string | null;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface CategoryListResponse {
+  data: Category[];
 }
 
 export interface ApiError {
@@ -201,8 +270,69 @@ export interface AdminEmpresaListItem {
   id: string;
   nome: string;
   cnpj: string | null;
+  is_active: boolean;
   created_at: string;
+  gestor_email: string | null;
+  gestor_nome: string | null;
   gestor_convite_pendente: boolean;
+  invoices_total: number;
+  invoices_this_month: number;
+  monthly_invoice_limit: number | null;
+  funcionarios_count: number;
+  dispositivos_ativos_count: number;
+}
+
+export interface AdminEmpresaDetail extends AdminEmpresaListItem {
+  updated_at: string;
+}
+
+export interface AdminEmpresaUpdate {
+  nome?: string;
+  cnpj?: string | null;
+  is_active?: boolean;
+  monthly_invoice_limit?: number | null;
+}
+
+export interface AdminEmpresaClearDataRequest {
+  confirm_nome: string;
+}
+
+export interface AdminEmpresaClearDataResponse {
+  invoices_deleted: number;
+  funcionarios_deleted: number;
+  convites_deleted: number;
+  dispositivos_deleted: number;
+  pairing_sessions_deleted: number;
+  storage_objects_deleted: number;
+}
+
+export interface TopEmpresaMonthItem {
+  nome: string;
+  invoices_this_month: number;
+}
+
+export interface AdminPlatformOverview {
+  empresas_total: number;
+  empresas_active: number;
+  empresas_inactive: number;
+  invoices_total: number;
+  invoices_this_month: number;
+  devices_active: number;
+  platform_admins: number;
+  gestores_active: number;
+  operadores_active: number;
+  funcionarios_inactive: number;
+  convites_pendentes_gestor: number;
+  convites_pendentes_operador: number;
+  top_empresas_month: TopEmpresaMonthItem[];
+}
+
+export interface EmpresaUsage {
+  invoices_total: number;
+  invoices_this_month: number;
+  monthly_invoice_limit: number | null;
+  is_unlimited: boolean;
+  usage_percentage: number | null;
 }
 
 export interface EmpresaPinStatus {

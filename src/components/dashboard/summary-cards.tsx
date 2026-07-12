@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 
+import { ConfidenceBadge } from "@/components/invoices/confidence-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DashboardSummary } from "@/lib/api/types";
-import { formatCurrency, formatPercent } from "@/lib/format";
+import { formatCurrency, formatDate, formatPercent } from "@/lib/format";
 
 export function SummaryCards({ summary }: { summary: DashboardSummary }) {
   const change = summary.change_pct;
@@ -19,7 +20,7 @@ export function SummaryCards({ summary }: { summary: DashboardSummary }) {
     {
       title: "Notas registradas",
       value: String(summary.invoice_count),
-      hint: "Notas processadas",
+      hint: "No período selecionado",
     },
     {
       title: "Ticket médio",
@@ -65,10 +66,11 @@ export function RecentInvoicesTable({
 }: {
   invoices: Array<{
     id: string;
+    created_at: string;
     issued_at: string | null;
     total_amount: string | null;
-    uf: string | null;
     status: string;
+    ai_confidence?: string | null;
     emitter?: { trade_name?: string | null; legal_name?: string | null } | null;
   }>;
 }) {
@@ -88,9 +90,10 @@ export function RecentInvoicesTable({
       <table className="w-full text-base">
         <thead className="bg-muted/50 text-left text-muted-foreground">
           <tr>
-            <th className="px-4 py-3 font-medium">Data</th>
+            <th className="px-4 py-3 font-medium">Registro</th>
+            <th className="px-4 py-3 font-medium">Emissão</th>
             <th className="px-4 py-3 font-medium">Emitente</th>
-            <th className="px-4 py-3 font-medium">UF</th>
+            <th className="px-4 py-3 font-medium">IA</th>
             <th className="px-4 py-3 font-medium text-right">Total</th>
           </tr>
         </thead>
@@ -99,13 +102,20 @@ export function RecentInvoicesTable({
             <tr key={invoice.id} className="border-t border-border">
               <td className="px-4 py-3">
                 <Link href={`/notas/${invoice.id}`} className="hover:text-primary hover:underline">
-                  {invoice.issued_at ? new Date(invoice.issued_at).toLocaleDateString("pt-BR") : "—"}
+                  {formatDate(invoice.created_at)}
                 </Link>
               </td>
+              <td className="px-4 py-3 tabular-nums">{formatDate(invoice.issued_at)}</td>
               <td className="px-4 py-3">
                 {invoice.emitter?.trade_name ?? invoice.emitter?.legal_name ?? "—"}
               </td>
-              <td className="px-4 py-3">{invoice.uf ?? "—"}</td>
+              <td className="px-4 py-3">
+                {invoice.status === "parsed" && invoice.ai_confidence ? (
+                  <ConfidenceBadge value={invoice.ai_confidence} size="sm" />
+                ) : (
+                  "—"
+                )}
+              </td>
               <td className="px-4 py-3 text-right font-mono">{formatCurrency(invoice.total_amount)}</td>
             </tr>
           ))}

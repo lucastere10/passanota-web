@@ -1,9 +1,18 @@
-import type { ApiError, CaptureInvoiceResponse, Invoice, SemanticSearchResponse } from "@/lib/api/types";
+import type {
+  ApiError,
+  CaptureInvoiceResponse,
+  CategoryListResponse,
+  Invoice,
+  InvoiceItem,
+  SemanticSearchResponse,
+  UpdateInvoiceItemRequest,
+  UpdateInvoiceRequest,
+} from "@/lib/api/types";
 
 import { getClientAuthHeaders } from "@/lib/auth/client";
 
 type ClientFetchOptions = {
-  method?: "GET" | "POST" | "PATCH";
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
   searchParams?: Record<string, string | number | undefined | null>;
   auth?: boolean;
@@ -49,6 +58,10 @@ export async function clientFetch<T>(
     throw new Error(await parseError(response));
   }
 
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   return (await response.json()) as T;
 }
 
@@ -78,5 +91,37 @@ export function searchSemanticClient(query: string, limit = 20) {
   return clientFetch<SemanticSearchResponse>("/v1/search/semantic", {
     method: "POST",
     body: { query, limit },
+  });
+}
+
+export function updateInvoiceClient(id: string, data: UpdateInvoiceRequest) {
+  return clientFetch<Invoice>(`/v1/invoices/${id}`, {
+    method: "PATCH",
+    body: data,
+  });
+}
+
+export function deleteInvoiceClient(id: string) {
+  return clientFetch<void>(`/v1/invoices/${id}`, { method: "DELETE" });
+}
+
+export function getCategoriesClient() {
+  return clientFetch<CategoryListResponse>("/v1/categories");
+}
+
+export function updateInvoiceItemClient(
+  invoiceId: string,
+  itemId: string,
+  data: UpdateInvoiceItemRequest,
+) {
+  return clientFetch<InvoiceItem>(`/v1/invoices/${invoiceId}/items/${itemId}`, {
+    method: "PATCH",
+    body: data,
+  });
+}
+
+export function deleteInvoiceItemClient(invoiceId: string, itemId: string) {
+  return clientFetch<void>(`/v1/invoices/${invoiceId}/items/${itemId}`, {
+    method: "DELETE",
   });
 }

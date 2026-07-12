@@ -1,12 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { CopyAccessKey } from "@/components/invoices/copy-access-key";
+import { ConfidenceBadge } from "@/components/invoices/confidence-badge";
+import { InvoiceEditSheet } from "@/components/invoices/invoice-edit-sheet";
 import { StatusBadge } from "@/components/invoices/status-badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -16,31 +31,92 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getInvoiceClient } from "@/lib/api/client";
-import type { Invoice } from "@/lib/api/types";
+import {
+  deleteInvoiceClient,
+  deleteInvoiceItemClient,
+  getCategoriesClient,
+  getInvoiceClient,
+  updateInvoiceItemClient,
+} from "@/lib/api/client";
+import type { Category, Invoice, InvoiceItem } from "@/lib/api/types";
 import {
   formatAccessKey,
   formatCnpj,
   formatCurrency,
+  formatDate,
   formatDateTime,
+  getConfidenceTier,
 } from "@/lib/format";
 
+type ItemDraft = {
+  description: string;
+  quantity: string;
+  unit: string;
+  unit_price: string;
+  total_price: string;
+  category_id: string;
+};
+
+function itemToDraft(item: InvoiceItem): ItemDraft {
+  return {
+    description: item.description,
+    quantity: item.quantity ?? "",
+    unit: item.unit ?? "",
+    unit_price: item.unit_price ?? "",
+    total_price: item.total_price ?? "",
+    category_id: item.category_id ?? "",
+  };
+}
+
 export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice }) {
+  const router = useRouter();
   const [invoice, setInvoice] = useState(initialInvoice);
+  const [editOpen, setEditOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteItemTargetId, setDeleteItemTargetId] = useState<string | null>(null);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [itemDraft, setItemDraft] = useState<ItemDraft | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isPending, startTransition] = useTransition();
+  const pollFailuresRef = useRef(0);
+
+  const MAX_POLL_FAILURES = 3;
 
   useEffect(() => {
     setInvoice(initialInvoice);
   }, [initialInvoice]);
 
   useEffect(() => {
-    if (invoice.status !== "pending") return;
+    void getCategoriesClient()
+      .then((response) => setCategories(response.data))
+      .catch(() => {
+        // categories are optional for read-only view
+      });
+  }, []);
+
+  useEffect(() => {
+    if (invoice.status !== "pending") {
+      pollFailuresRef.current = 0;
+      return;
+    }
 
     const intervalId = window.setInterval(async () => {
+      if (pollFailuresRef.current >= MAX_POLL_FAILURES) {
+        window.clearInterval(intervalId);
+        toast.error("Serviço indisponível. Atualização automática pausada.");
+        return;
+      }
+
       try {
         const updated = await getInvoiceClient(invoice.id);
+        pollFailuresRef.current = 0;
         setInvoice(updated);
       } catch {
-        // keep polling on transient errors
+        pollFailuresRef.current += 1;
+        if (pollFailuresRef.current >= MAX_POLL_FAILURES) {
+          window.clearInterval(intervalId);
+          toast.error("Serviço indisponível. Atualização automática pausada.");
+        }
       }
     }, 5000);
 
@@ -49,6 +125,74 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
 
   const emitterName =
     invoice.emitter?.trade_name ?? invoice.emitter?.legal_name ?? "Nota fiscal";
+  const confidenceTier = getConfidenceTier(invoice.ai_confidence);
+
+  function handleDelete() {
+    startTransition(async () => {
+      try {
+        await deleteInvoiceClient(invoice.id);
+        toast.success("Nota excluída.");
+        setConfirmDelete(false);
+        router.push("/notas");
+        router.refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Erro ao excluir nota.");
+      }
+    });
+  }
+
+  function confirmDeleteItem() {
+    if (!deleteItemTargetId) return;
+
+    startTransition(async () => {
+      try {
+        await deleteInvoiceItemClient(invoice.id, deleteItemTargetId);
+        const updated = await getInvoiceClient(invoice.id);
+        setInvoice(updated);
+        setDeleteItemTargetId(null);
+        toast.success("Item excluído.");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Erro ao excluir item.");
+      }
+    });
+  }
+
+  function startEditItem(item: InvoiceItem) {
+    setEditingItemId(item.id);
+    setItemDraft(itemToDraft(item));
+  }
+
+  function cancelEditItem() {
+    setEditingItemId(null);
+    setItemDraft(null);
+  }
+
+  function saveItem(itemId: string) {
+    if (!itemDraft) return;
+
+    startTransition(async () => {
+      try {
+        await updateInvoiceItemClient(invoice.id, itemId, {
+          description: itemDraft.description,
+          quantity: itemDraft.quantity || null,
+          unit: itemDraft.unit || null,
+          unit_price: itemDraft.unit_price || null,
+          total_price: itemDraft.total_price || null,
+          category_id: itemDraft.category_id || null,
+        });
+        const updated = await getInvoiceClient(invoice.id);
+        setInvoice(updated);
+        cancelEditItem();
+        toast.success("Item atualizado.");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Erro ao atualizar item.");
+      }
+    });
+  }
+
+  function handleDeleteItem(itemId: string) {
+    setDeleteItemTargetId(itemId);
+  }
 
   return (
     <div className="space-y-6">
@@ -56,13 +200,56 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{emitterName}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {invoice.source_type === "photo_ai" ? "Foto + IA" : "Nota fiscal"}
-            {invoice.uf ? ` · ${invoice.uf}` : ""}
-            {invoice.issued_at ? ` · ${formatDateTime(invoice.issued_at)}` : ""}
+            Registro: {formatDate(invoice.created_at)}
+            {invoice.issued_at ? ` · Emissão: ${formatDate(invoice.issued_at)}` : ""}
           </p>
         </div>
-        <StatusBadge status={invoice.status} />
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge status={invoice.status} />
+          {invoice.status !== "pending" ? (
+            <>
+              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                Editar
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={() => setConfirmDelete(true)}
+              >
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                Excluir
+              </Button>
+            </>
+          ) : null}
+        </div>
       </div>
+
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Excluir nota fiscal?"
+        description="Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        variant="destructive"
+        loading={isPending}
+        onConfirm={handleDelete}
+      />
+
+      <ConfirmDialog
+        open={deleteItemTargetId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteItemTargetId(null);
+        }}
+        title="Excluir item?"
+        description="O item será removido permanentemente desta nota."
+        confirmLabel="Excluir"
+        variant="destructive"
+        loading={isPending}
+        onConfirm={confirmDeleteItem}
+      />
 
       {invoice.status === "pending" ? (
         <Alert>
@@ -77,6 +264,28 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
         <Alert variant="destructive">
           <AlertTitle>Falha no processamento</AlertTitle>
           <AlertDescription>{invoice.error_message}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {invoice.status === "parsed" && confidenceTier && confidenceTier !== "high" ? (
+        <Alert
+          className={
+            confidenceTier === "medium"
+              ? "border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200"
+              : undefined
+          }
+          variant={confidenceTier === "low" ? "destructive" : "default"}
+        >
+          <AlertTitle>
+            {confidenceTier === "medium" ? "Confiança média da IA" : "Baixa confiança da IA"}
+          </AlertTitle>
+          <AlertDescription className="flex flex-wrap items-center gap-2">
+            <ConfidenceBadge value={invoice.ai_confidence} showTooltip={false} />
+            <span>Revise os dados extraídos antes de confiar nos relatórios.</span>
+            <Button variant="link" className="h-auto p-0" onClick={() => setEditOpen(true)}>
+              Editar nota
+            </Button>
+          </AlertDescription>
         </Alert>
       ) : null}
 
@@ -99,26 +308,152 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
                 <TableHeader>
                   <TableRow>
                     <TableHead>Descrição</TableHead>
+                    <TableHead>Categoria</TableHead>
                     <TableHead>Qtd</TableHead>
                     <TableHead>Un</TableHead>
                     <TableHead className="text-right">Unit.</TableHead>
                     <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="w-[80px]" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {invoice.items.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>{item.description}</TableCell>
-                      <TableCell className="font-mono">{item.quantity ?? "—"}</TableCell>
-                      <TableCell>{item.unit ?? "—"}</TableCell>
-                      <TableCell className="text-right font-mono">
-                        {formatCurrency(item.unit_price)}
-                      </TableCell>
-                      <TableCell className="text-right font-mono">
-                        {formatCurrency(item.total_price)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {invoice.items.map((item) => {
+                    const isEditing = editingItemId === item.id;
+
+                    if (isEditing && itemDraft) {
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <Input
+                              value={itemDraft.description}
+                              onChange={(e) =>
+                                setItemDraft({ ...itemDraft, description: e.target.value })
+                              }
+                              className="h-8"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={itemDraft.category_id || undefined}
+                              onValueChange={(value) =>
+                                setItemDraft({ ...itemDraft, category_id: value ?? "" })
+                              }
+                            >
+                              <SelectTrigger className="h-8 w-[140px]">
+                                <SelectValue placeholder="Categoria" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {categories.map((category) => (
+                                  <SelectItem key={category.id} value={category.id}>
+                                    {category.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={itemDraft.quantity}
+                              onChange={(e) =>
+                                setItemDraft({ ...itemDraft, quantity: e.target.value })
+                              }
+                              className="h-8 w-16"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={itemDraft.unit}
+                              onChange={(e) =>
+                                setItemDraft({ ...itemDraft, unit: e.target.value })
+                              }
+                              className="h-8 w-14"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={itemDraft.unit_price}
+                              onChange={(e) =>
+                                setItemDraft({ ...itemDraft, unit_price: e.target.value })
+                              }
+                              className="h-8 w-24 text-right"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={itemDraft.total_price}
+                              onChange={(e) =>
+                                setItemDraft({ ...itemDraft, total_price: e.target.value })
+                              }
+                              className="h-8 w-24 text-right"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => saveItem(item.id)}
+                                disabled={isPending}
+                              >
+                                Salvar
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={cancelEditItem}
+                                disabled={isPending}
+                              >
+                                ✕
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    }
+
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell>{item.description}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {item.category_name ?? "Outros"}
+                        </TableCell>
+                        <TableCell className="font-mono">{item.quantity ?? "—"}</TableCell>
+                        <TableCell>{item.unit ?? "—"}</TableCell>
+                        <TableCell className="text-right font-mono">
+                          {formatCurrency(item.unit_price)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          {formatCurrency(item.total_price)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={() => startEditItem(item)}
+                              disabled={isPending}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteItem(item.id)}
+                              disabled={isPending}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
@@ -137,6 +472,14 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
               </div>
             ) : (
               <>
+                <div>
+                  <p className="text-muted-foreground">Registro na plataforma</p>
+                  <p>{formatDateTime(invoice.created_at)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Data de emissão</p>
+                  <p>{formatDate(invoice.issued_at)}</p>
+                </div>
                 {invoice.emitter?.cnpj ? (
                   <div>
                     <p className="text-muted-foreground">CNPJ</p>
@@ -163,6 +506,12 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
                     <p>{invoice.ai_model}</p>
                   </div>
                 ) : null}
+                {invoice.ai_confidence ? (
+                  <div>
+                    <p className="text-muted-foreground">Confiança da IA</p>
+                    <ConfidenceBadge value={invoice.ai_confidence} />
+                  </div>
+                ) : null}
                 {invoice.access_key ? (
                   <div>
                     <p className="text-muted-foreground">Chave de acesso</p>
@@ -180,6 +529,13 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
           </CardContent>
         </Card>
       </div>
+
+      <InvoiceEditSheet
+        invoice={invoice}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onSaved={setInvoice}
+      />
     </div>
   );
 }

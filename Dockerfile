@@ -7,8 +7,7 @@ FROM base AS deps
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml ./
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
 WORKDIR /app
@@ -20,19 +19,19 @@ ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 ARG NEXT_PUBLIC_APP_URL
 
-ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
-ENV NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
-ENV NODE_ENV=production
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
+    NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
+    NODE_ENV=production
 
 RUN pnpm run build
 
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV=production
-ENV PORT=8080
-ENV HOSTNAME=0.0.0.0
+ENV NODE_ENV=production \
+    PORT=8080 \
+    HOSTNAME=0.0.0.0
 
 RUN addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 nextjs

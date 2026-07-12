@@ -1,37 +1,24 @@
 substitutions:
-  _REGION: us-central1
-  _AR_REPOSITORY: passanota-images
-  _IMAGE_NAME: passanota-web
+  # Infra
+  _AR_HOSTNAME: us-central1-docker.pkg.dev
+  _DEPLOY_REGION: us-central1
+  _AR_REPO: passanota-images
   _SERVICE_NAME: passanota-web
-  _TAG: latest
-  _PASSANOTA_API_URL: ""
-  _SUPABASE_URL: ""
-  _APP_URL: ""
-  _MIN_INSTANCES: "0"
-  _SECRET_SUPABASE_PUBLISHABLE_KEY: PASSANOTA_SUPABASE_PUBLISHABLE_KEY
+  _RUNTIME_SA: passanota-sa
+  _IMAGE: ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}
+  _CONCURRENCY: "15"
+  _LABEL_APP: passanota
+  _LABEL_ENV: production
+  _LABEL_OWNER: lucas
 
-availableSecrets:
-  secretManager:
-    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_SUPABASE_PUBLISHABLE_KEY}/versions/latest
-      env: SUPABASE_PUBLISHABLE_KEY
+  # Application
+  _SUPABASE_PUBLISHABLE_KEY: sb_publishable_erZ3_s4f1-kMj6fBIJF0Sw_f6cRHtzq
+  _SUPABASE_URL: https://kdmiptpxatsobroqzjnq.supabase.co
+  _APP_URL: "https://passanota.caldasdev.store"
+  _PASSANOTA_API_URL: "https://passanota-api-399951936554.us-central1.run.app"
+  _MIN_INSTANCES: "0"
 
 steps:
-  - id: validate
-    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    entrypoint: bash
-    args:
-      - -c
-      - |
-        set -euo pipefail
-        if [ -z "${_PASSANOTA_API_URL}" ] || [ -z "${_SUPABASE_URL}" ] || [ -z "${_APP_URL}" ]; then
-          echo "ERROR: Configure _PASSANOTA_API_URL, _SUPABASE_URL e _APP_URL nas substitutions."
-          exit 1
-        fi
-        case "${_APP_URL}" in *XXXX*|*"[project-ref]"*) echo "ERROR: _APP_URL é placeholder (${_APP_URL})."; exit 1;; esac
-        echo "Checking secret: ${_SECRET_SUPABASE_PUBLISHABLE_KEY}"
-        gcloud secrets describe "${_SECRET_SUPABASE_PUBLISHABLE_KEY}" --project="$PROJECT_ID" >/dev/null
-        echo "Validation OK (commit: $COMMIT_SHA)"
-
   - id: lint
     name: node:22-alpine
     entrypoint: sh
@@ -43,21 +30,23 @@ steps:
         pnpm install --frozen-lockfile
         pnpm lint
         pnpm typecheck
-    waitFor: [validate]
 
   - id: build
     name: gcr.io/cloud-builders/docker
-    secretEnv: [SUPABASE_PUBLISHABLE_KEY]
+    env:
+      - DOCKER_BUILDKIT=1
     args:
       - build
+      - --cache-from
+      - ${_IMAGE}:latest
       - -t
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:${_TAG}
+      - ${_IMAGE}:${COMMIT_SHA}
       - -t
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:latest
+      - ${_IMAGE}:latest
       - --build-arg
       - NEXT_PUBLIC_SUPABASE_URL=${_SUPABASE_URL}
       - --build-arg
-      - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$$SUPABASE_PUBLISHABLE_KEY
+      - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${_SUPABASE_PUBLISHABLE_KEY}
       - --build-arg
       - NEXT_PUBLIC_APP_URL=${_APP_URL}
       - .
@@ -68,7 +57,7 @@ steps:
     args:
       - push
       - --all-tags
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}
+      - ${_IMAGE}
     waitFor: [build]
 
   - id: deploy
@@ -79,9 +68,9 @@ steps:
       - deploy
       - ${_SERVICE_NAME}
       - --image
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:${_TAG}
+      - ${_IMAGE}:${COMMIT_SHA}
       - --region
-      - ${_REGION}
+      - ${_DEPLOY_REGION}
       - --platform
       - managed
       - --allow-unauthenticated
@@ -93,17 +82,30 @@ steps:
       - "1"
       - --timeout
       - "60"
+      - --cpu-boost
+      - --concurrency
+      - ${_CONCURRENCY}
+      - --revision-suffix
+      - ${SHORT_SHA}
+      - --labels
+      - app=${_LABEL_APP},env=${_LABEL_ENV},owner=${_LABEL_OWNER}
+      - --execution-environment
+      - gen2
+      - --service-account
+      - ${_RUNTIME_SA}@${PROJECT_ID}.iam.gserviceaccount.com
       - --min-instances
       - ${_MIN_INSTANCES}
       - --max-instances
       - "5"
       - --set-env-vars
-      - NODE_ENV=production,PASSANOTA_API_URL=${_PASSANOTA_API_URL}
+      - ^|^NODE_ENV=production|PASSANOTA_API_URL=${_PASSANOTA_API_URL}
     waitFor: [push]
 
 images:
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:${_TAG}
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:latest
+  - ${_IMAGE}:${COMMIT_SHA}
+  - ${_IMAGE}:latest
 
 options:
   logging: CLOUD_LOGGING_ONLY
+
+serviceAccount: projects/${PROJECT_ID}/serviceAccounts/cloud-build-sa@${PROJECT_ID}.iam.gserviceaccount.com
