@@ -14,7 +14,7 @@ substitutions:
   # Application
   _SUPABASE_PUBLISHABLE_KEY: sb_publishable_erZ3_s4f1-kMj6fBIJF0Sw_f6cRHtzq
   _SUPABASE_URL: https://kdmiptpxatsobroqzjnq.supabase.co
-  _APP_URL: "https://passanota.caldasdev.store"
+  _APP_URL: "https://passanota.caldasdev.com.br"
   _PASSANOTA_API_URL: "https://passanota-api-399951936554.us-central1.run.app"
   _MIN_INSTANCES: "0"
 
