@@ -65,23 +65,31 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  if (pathname === "/" && user) {
+  function redirectWithSessionCookies(pathnameTo: string, search?: Record<string, string>) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+    url.pathname = pathnameTo;
+    if (search) {
+      for (const [key, value] of Object.entries(search)) {
+        url.searchParams.set(key, value);
+      }
+    }
+    const redirectResponse = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie);
+    });
+    return redirectResponse;
+  }
+
+  if (pathname === "/" && user) {
+    return redirectWithSessionCookies("/dashboard");
   }
 
   if (user && isAuthOnlyRoute(pathname)) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+    return redirectWithSessionCookies("/dashboard");
   }
 
   if (!user && isProtectedRoute(pathname) && !isPublicRoute(pathname)) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
+    return redirectWithSessionCookies("/login", { next: pathname });
   }
 
   return supabaseResponse;

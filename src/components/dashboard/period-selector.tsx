@@ -1,41 +1,88 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { buttonVariants } from "@/components/ui/button";
-import type { Period } from "@/lib/api/types";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import type { Granularity, Period } from "@/lib/api/types";
+import { DASHBOARD_PERIODS, granularityForPeriodChange } from "@/lib/dashboard/period";
 
-const PERIODS: Period[] = ["7d", "30d", "90d", "year"];
-
-const LABELS: Record<Period, string> = {
+const PERIOD_CHIP_LABELS: Record<Period, string> = {
   "7d": "7d",
   "30d": "30d",
   "90d": "90d",
-  year: "Ano",
 };
 
-export function PeriodSelector({ current }: { current: Period }) {
+export function PeriodSelector({
+  period,
+  granularity,
+}: {
+  period: Period;
+  granularity: Granularity;
+}) {
+  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+
+  function replace(nextPeriod: Period, nextGranularity: Granularity) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("period", nextPeriod);
+    if (nextPeriod === "7d") {
+      params.delete("granularity");
+    } else {
+      params.set("granularity", nextGranularity);
+    }
+    startTransition(() => {
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    });
+  }
+
+  function handlePeriod(nextPeriod: Period) {
+    replace(nextPeriod, granularityForPeriodChange(nextPeriod, period, granularity));
+  }
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {PERIODS.map((period) => {
-        const params = new URLSearchParams(searchParams.toString());
-        params.set("period", period);
-        const active = current === period;
-        return (
-          <Link
-            key={period}
-            href={`${pathname}?${params.toString()}`}
-            className={cn(buttonVariants({ variant: active ? "default" : "outline", size: "sm" }))}
+    <div className="flex flex-col items-stretch gap-2 sm:items-end" aria-busy={isPending}>
+      <div className="flex flex-wrap gap-2">
+        {DASHBOARD_PERIODS.map((item) => {
+          const active = period === item;
+          return (
+            <Button
+              key={item}
+              type="button"
+              size="sm"
+              variant={active ? "default" : "outline"}
+              aria-pressed={active}
+              onClick={() => handlePeriod(item)}
+            >
+              {PERIOD_CHIP_LABELS[item]}
+            </Button>
+          );
+        })}
+      </div>
+      {period !== "7d" ? (
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant={granularity === "day" ? "default" : "outline"}
+            aria-pressed={granularity === "day"}
+            onClick={() => replace(period, "day")}
           >
-            {LABELS[period]}
-          </Link>
-        );
-      })}
+            Dia
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={granularity === "week" ? "default" : "outline"}
+            aria-pressed={granularity === "week"}
+            onClick={() => replace(period, "week")}
+          >
+            Semana
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

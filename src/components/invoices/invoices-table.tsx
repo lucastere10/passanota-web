@@ -12,9 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { InvoiceSortField, InvoiceSortOrder, InvoiceDateRange } from "@/lib/invoices/constants";
-import { invoicesHref, toggleSort } from "@/lib/invoices/query";
-import type { Invoice, InvoiceStatus } from "@/lib/api/types";
+import type { InvoiceSortField, InvoiceSortOrder } from "@/lib/invoices/constants";
+import type { Invoice } from "@/lib/api/types";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -23,33 +22,24 @@ function SortableHead({
   label,
   sortBy,
   sortOrder,
-  status,
-  range,
+  onSort,
   className,
 }: {
   field: InvoiceSortField;
   label: string;
   sortBy: InvoiceSortField;
   sortOrder: InvoiceSortOrder;
-  status?: InvoiceStatus;
-  range?: InvoiceDateRange;
+  onSort: (field: InvoiceSortField) => void;
   className?: string;
 }) {
   const active = sortBy === field;
-  const next = toggleSort(field, sortBy, sortOrder);
-  const href = invoicesHref({
-    status,
-    range,
-    sort_by: next.sort_by,
-    sort_order: next.sort_order,
-  });
-
   const Icon = active ? (sortOrder === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
 
   return (
     <TableHead className={className}>
-      <Link
-        href={href}
+      <button
+        type="button"
+        onClick={() => onSort(field)}
         className={cn(
           "inline-flex items-center gap-1 transition-colors hover:text-foreground",
           active ? "text-foreground" : "text-muted-foreground",
@@ -57,7 +47,7 @@ function SortableHead({
       >
         {label}
         <Icon className="size-3.5 shrink-0 opacity-70" aria-hidden />
-      </Link>
+      </button>
     </TableHead>
   );
 }
@@ -66,14 +56,12 @@ export function InvoicesTable({
   invoices,
   sortBy = "created_at",
   sortOrder = "desc",
-  status,
-  range,
+  onSort,
 }: {
   invoices: Invoice[];
   sortBy?: InvoiceSortField;
   sortOrder?: InvoiceSortOrder;
-  status?: InvoiceStatus;
-  range?: InvoiceDateRange;
+  onSort: (field: InvoiceSortField) => void;
 }) {
   if (invoices.length === 0) {
     return (
@@ -96,8 +84,7 @@ export function InvoicesTable({
               label="Registro"
               sortBy={sortBy}
               sortOrder={sortOrder}
-              status={status}
-              range={range}
+              onSort={onSort}
               className="text-xs font-medium uppercase tracking-wide"
             />
             <SortableHead
@@ -105,8 +92,7 @@ export function InvoicesTable({
               label="Emissão"
               sortBy={sortBy}
               sortOrder={sortOrder}
-              status={status}
-              range={range}
+              onSort={onSort}
               className="text-xs font-medium uppercase tracking-wide"
             />
             <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -117,8 +103,7 @@ export function InvoicesTable({
               label="Status"
               sortBy={sortBy}
               sortOrder={sortOrder}
-              status={status}
-              range={range}
+              onSort={onSort}
               className="text-xs font-medium uppercase tracking-wide"
             />
             <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -146,6 +131,7 @@ export function InvoicesTable({
                 <TableCell className="max-w-[280px]">
                   <Link
                     href={`/notas/${invoice.id}`}
+                    prefetch={false}
                     className="block truncate text-sm font-medium text-foreground hover:text-primary hover:underline"
                   >
                     {emitterName}

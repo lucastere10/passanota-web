@@ -17,9 +17,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       return <ApiUnavailableState />;
     }
     if (isUnauthorizedError(err)) {
-      redirect("/login");
+      redirect("/auth/signout");
     }
-    redirect("/login");
+    throw err;
   }
 
   if (me.pending_invite) {
@@ -39,12 +39,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const cookieStore = await cookies();
-  if (!cookieStore.get(EMPRESA_COOKIE)?.value && me.empresas.length >= 1) {
-    cookieStore.set(EMPRESA_COOKIE, me.empresas[0].id, {
-      path: "/",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 365,
-    });
+  try {
+    if (!cookieStore.get(EMPRESA_COOKIE)?.value && me.empresas.length >= 1) {
+      cookieStore.set(EMPRESA_COOKIE, me.empresas[0].id, {
+        path: "/",
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 365,
+      });
+    }
+  } catch {
+    // Server Components cannot always persist cookies; middleware/client handle fallback.
   }
 
   return (
