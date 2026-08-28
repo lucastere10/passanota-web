@@ -1,34 +1,30 @@
 import { Suspense } from "react";
 
-import { DashboardContent } from "@/components/dashboard/dashboard-content";
+import { DashboardView } from "@/components/dashboard/dashboard-view";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Period } from "@/lib/api/types";
 
-function DashboardSkeleton() {
+function DashboardFallback() {
   return (
     <div className="space-y-6">
-      <Skeleton className="h-10 w-48" />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-9 w-48" />
+      </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => (
-          <Skeleton key={index} className="h-28" />
+          <Skeleton key={index} className="h-28 rounded-lg" />
         ))}
       </div>
-      <Skeleton className="h-80" />
+      <Skeleton className="h-80 rounded-lg" />
+      <Skeleton className="h-80 rounded-lg" />
     </div>
   );
 }
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ period?: string }>;
-}) {
-  const params = await searchParams;
-  const period = (params.period ?? "30d") as Period;
-
+export default function DashboardPage() {
   return (
-    <Suspense fallback={<DashboardSkeleton />}>
-      <DashboardContent period={period} />
+    <Suspense fallback={<DashboardFallback />}>
+      <DashboardView />
     </Suspense>
   );
 }

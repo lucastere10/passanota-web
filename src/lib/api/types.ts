@@ -3,7 +3,8 @@ export type InvoiceSource = "photo_ai";
 
 export type FuncionarioRole = "gestor" | "operador";
 
-export type Period = "7d" | "30d" | "90d" | "year";
+export type Period = "7d" | "30d" | "90d";
+export type Granularity = "day" | "week";
 
 export interface Empresa {
   id: string;
@@ -82,6 +83,15 @@ export interface PaginatedInvoices {
   total: number;
   page: number;
   page_size: number;
+}
+
+export interface InvoiceStatusItem {
+  id: string;
+  status: InvoiceStatus;
+}
+
+export interface InvoiceStatusesResponse {
+  data: InvoiceStatusItem[];
 }
 
 export interface DashboardSummary {

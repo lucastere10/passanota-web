@@ -1,10 +1,9 @@
-import { unstable_cache } from "next/cache";
-
 import { fetchFromApi } from "@/lib/api/fetch";
 import type {
   Breakdown,
   DashboardAllResponse,
   DashboardSummary,
+  Granularity,
   Invoice,
   PaginatedInvoices,
   Period,
@@ -15,7 +14,8 @@ import type {
   StackedBreakdown,
   TopProducts,
 } from "@/lib/api/types";
-import { getAuthHeaders } from "@/lib/auth/session";
+import { getEmpresaId } from "@/lib/auth/session";
+import { defaultGranularity } from "@/lib/dashboard/period";
 
 export async function getDashboardSummary(period: Period = "30d") {
   return fetchFromApi<DashboardSummary>("/v1/dashboard/summary", {
@@ -90,33 +90,19 @@ export async function searchSemantic(query: string, limit = 20) {
   });
 }
 
-const getCachedDashboardAll = unstable_cache(
-  async (period: Period, empresaId: string, authorization: string) => {
-    return fetchFromApi<DashboardAllResponse>("/v1/dashboard", {
-      searchParams: { period },
-      headers: {
-        Authorization: authorization,
-        "X-Empresa-Id": empresaId,
-      },
-    });
-  },
-  ["dashboard-all"],
-  { revalidate: 30 },
-);
-
-export async function getDashboardData(period: Period = "30d") {
-  const authHeaders = (await getAuthHeaders()) as Record<string, string>;
-  const empresaId = authHeaders["X-Empresa-Id"];
-  const authorization = authHeaders.Authorization;
-
+export async function getDashboardData(
+  period: Period = "30d",
+  granularity?: Granularity,
+) {
+  const empresaId = await getEmpresaId();
   if (!empresaId) {
     throw new Error("Empresa não selecionada");
   }
-  if (!authorization) {
-    throw new Error("Sessão expirada ou inválida");
-  }
 
-  const data = await getCachedDashboardAll(period, empresaId, authorization);
+  const resolvedGranularity = granularity ?? defaultGranularity(period);
+  const data = await fetchFromApi<DashboardAllResponse>("/v1/dashboard", {
+    searchParams: { period, granularity: resolvedGranularity },
+  });
 
   return {
     summary: data.summary,

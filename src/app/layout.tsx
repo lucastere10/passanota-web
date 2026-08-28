@@ -1,7 +1,9 @@
 import { IBM_Plex_Mono } from "next/font/google";
+import { preconnect, prefetchDNS } from "react-dom";
 
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { getSupabaseUrl } from "@/lib/supabase/env";
 
 import "./globals.css";
 
@@ -22,6 +24,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabaseUrl = getSupabaseUrl();
+  prefetchDNS(supabaseUrl);
+  preconnect(supabaseUrl);
+
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${ibmPlexMono.variable} min-h-screen antialiased`}>

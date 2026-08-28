@@ -85,5 +85,4 @@ export const PERIOD_LABELS: Record<string, string> = {
   "7d": "7 dias",
   "30d": "30 dias",
   "90d": "90 dias",
-  year: "Ano",
 };
