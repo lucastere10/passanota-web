@@ -4,6 +4,8 @@ import type {
   CategoryListResponse,
   Invoice,
   InvoiceItem,
+  InvoiceStatusesResponse,
+  PaginatedInvoices,
   SemanticSearchResponse,
   UpdateInvoiceItemRequest,
   UpdateInvoiceRequest,
@@ -83,8 +85,28 @@ export async function captureInvoiceClient(file: File) {
   return (await response.json()) as CaptureInvoiceResponse;
 }
 
+export function getInvoicesClient(params: {
+  page?: number;
+  page_size?: number;
+  status?: string;
+  created_from?: string;
+  created_to?: string;
+  sort_by?: string;
+  sort_order?: string;
+}) {
+  return clientFetch<PaginatedInvoices>("/v1/invoices", {
+    searchParams: params,
+  });
+}
+
 export function getInvoiceClient(id: string) {
   return clientFetch<Invoice>(`/v1/invoices/${id}`);
+}
+
+export function getInvoiceStatusesClient(ids: string[]) {
+  return clientFetch<InvoiceStatusesResponse>("/v1/invoices/statuses", {
+    searchParams: { ids: ids.join(",") },
+  });
 }
 
 export function searchSemanticClient(query: string, limit = 20) {

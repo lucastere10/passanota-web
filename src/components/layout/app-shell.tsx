@@ -46,6 +46,7 @@ function NavLink({
   return (
     <Link
       href={href}
+      prefetch={false}
       title={collapsed ? label : undefined}
       className={cn(
         "flex items-center rounded-lg transition-colors",
@@ -187,6 +188,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 className={cn(
                   "flex flex-col items-center gap-1 rounded-lg px-1 py-2 text-xs font-bold",
                   active ? "text-primary" : "text-muted-foreground",

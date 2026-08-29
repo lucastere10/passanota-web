@@ -4,12 +4,73 @@ import type { InvoiceStatus } from "@/lib/api/types";
 const BRAZIL_TZ = "America/Sao_Paulo";
 const BRAZIL_OFFSET = "-03:00";
 
+export const INVOICE_PAGE_SIZE = 20;
+
+const VALID_STATUSES = new Set<InvoiceStatus>(["parsed", "pending", "failed"]);
+const VALID_RANGES = new Set<InvoiceDateRange>(["day", "week", "month"]);
+const VALID_SORT_FIELDS = new Set<InvoiceSortField>(["created_at", "issued_at", "status"]);
+
 export interface InvoiceListParams {
   page?: number;
   status?: InvoiceStatus;
   range?: InvoiceDateRange;
   sort_by?: InvoiceSortField;
   sort_order?: InvoiceSortOrder;
+}
+
+export interface InvoiceListQuery {
+  page: number;
+  status?: InvoiceStatus;
+  range?: InvoiceDateRange;
+  sort_by: InvoiceSortField;
+  sort_order: InvoiceSortOrder;
+}
+
+export function parseInvoiceListParams(input: {
+  page?: string | null;
+  status?: string | null;
+  range?: string | null;
+  sort_by?: string | null;
+  sort_order?: string | null;
+}): InvoiceListQuery {
+  const parsedPage = Number(input.page ?? "1");
+  const page = Number.isFinite(parsedPage) && parsedPage >= 1 ? Math.floor(parsedPage) : 1;
+  const status = VALID_STATUSES.has(input.status as InvoiceStatus)
+    ? (input.status as InvoiceStatus)
+    : undefined;
+  const range = VALID_RANGES.has(input.range as InvoiceDateRange)
+    ? (input.range as InvoiceDateRange)
+    : undefined;
+  const sort_by = VALID_SORT_FIELDS.has(input.sort_by as InvoiceSortField)
+    ? (input.sort_by as InvoiceSortField)
+    : "created_at";
+  const sort_order: InvoiceSortOrder = input.sort_order === "asc" ? "asc" : "desc";
+
+  return { page, status, range, sort_by, sort_order };
+}
+
+export function parseInvoiceListParamsFromSearch(search: string): InvoiceListQuery {
+  const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  return parseInvoiceListParams({
+    page: params.get("page"),
+    status: params.get("status"),
+    range: params.get("range"),
+    sort_by: params.get("sort_by"),
+    sort_order: params.get("sort_order"),
+  });
+}
+
+export function toInvoicesApiParams(query: InvoiceListQuery) {
+  const dateRange = query.range ? getRegistrationDateRange(query.range) : undefined;
+  return {
+    page: query.page,
+    page_size: INVOICE_PAGE_SIZE,
+    status: query.status,
+    created_from: dateRange?.created_from,
+    created_to: dateRange?.created_to,
+    sort_by: query.sort_by,
+    sort_order: query.sort_order,
+  };
 }
 
 function getBrazilDateParts(date = new Date()) {

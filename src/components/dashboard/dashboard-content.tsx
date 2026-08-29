@@ -1,35 +1,31 @@
 import Link from "next/link";
-import { Suspense } from "react";
 
 import { DashboardChartsSection } from "@/components/dashboard/dashboard-charts-section";
 import { DashboardSecondaryCharts } from "@/components/dashboard/dashboard-secondary-charts";
-import { PeriodSelector } from "@/components/dashboard/period-selector";
 import { RecentInvoicesTable, SummaryCards } from "@/components/dashboard/summary-cards";
-import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getDashboardData } from "@/lib/api/server";
-import type { Period } from "@/lib/api/types";
-import { PERIOD_LABELS } from "@/lib/format";
+import type { DashboardData } from "@/lib/api/dashboard-client";
+import type { Granularity, Period } from "@/lib/api/types";
 
-export async function DashboardContent({ period }: { period: Period }) {
-  const data = await getDashboardData(period);
-
+export function DashboardContent({
+  period,
+  granularity,
+  data,
+  seriesRefreshing,
+}: {
+  period: Period;
+  granularity: Granularity;
+  data: DashboardData;
+  seriesRefreshing: boolean;
+}) {
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Dashboard"
-        description={`Visão de gastos — ${PERIOD_LABELS[period] ?? period}`}
-        actions={
-          <Suspense fallback={<div className="h-9 w-48 animate-pulse rounded-md bg-muted" />}>
-            <PeriodSelector current={period} />
-          </Suspense>
-        }
-      />
-
+    <>
       <SummaryCards summary={data.summary} />
 
       <DashboardChartsSection
         period={period}
+        granularity={granularity}
+        seriesRefreshing={seriesRefreshing}
         spendByCategory={data.spendByCategory}
         initialSpendOverTime={data.spendOverTime}
         initialTopEmitters={data.topEmitters}
@@ -41,12 +37,14 @@ export async function DashboardContent({ period }: { period: Period }) {
         spendByCategory={data.spendByCategory}
         topProducts={data.topProducts}
         spendOverTime={data.spendOverTime}
+        granularity={granularity}
+        seriesRefreshing={seriesRefreshing}
       />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Notas recentes</CardTitle>
-          <Link href="/notas" className="text-sm text-primary hover:underline">
+          <Link href="/notas" className="text-sm text-primary hover:underline" prefetch={false}>
             Ver todas
           </Link>
         </CardHeader>
@@ -54,6 +52,6 @@ export async function DashboardContent({ period }: { period: Period }) {
           <RecentInvoicesTable invoices={data.recent.data} />
         </CardContent>
       </Card>
-    </div>
+    </>
   );
 }

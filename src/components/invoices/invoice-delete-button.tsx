@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -9,6 +8,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { deleteInvoiceClient } from "@/lib/api/client";
 import type { InvoiceStatus } from "@/lib/api/types";
+import { revalidateInvoiceLists } from "@/lib/invoices/swr";
 
 export function InvoiceDeleteButton({
   invoiceId,
@@ -17,7 +17,6 @@ export function InvoiceDeleteButton({
   invoiceId: string;
   status: InvoiceStatus;
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -31,7 +30,7 @@ export function InvoiceDeleteButton({
         await deleteInvoiceClient(invoiceId);
         toast.success("Nota excluída.");
         setOpen(false);
-        router.refresh();
+        await revalidateInvoiceLists(invoiceId);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Erro ao excluir nota.");
       }

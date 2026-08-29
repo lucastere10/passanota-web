@@ -39,6 +39,7 @@ import {
   updateInvoiceItemClient,
 } from "@/lib/api/client";
 import type { Category, Invoice, InvoiceItem } from "@/lib/api/types";
+import { revalidateInvoiceLists } from "@/lib/invoices/swr";
 import {
   formatAccessKey,
   formatCnpj,
@@ -133,8 +134,8 @@ export function InvoiceDetailView({ initialInvoice }: { initialInvoice: Invoice 
         await deleteInvoiceClient(invoice.id);
         toast.success("Nota excluída.");
         setConfirmDelete(false);
+        await revalidateInvoiceLists(invoice.id);
         router.push("/notas");
-        router.refresh();
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Erro ao excluir nota.");
       }

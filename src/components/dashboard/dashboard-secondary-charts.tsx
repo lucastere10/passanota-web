@@ -1,10 +1,12 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import type { ReactNode } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Breakdown, SpendOverTime, TopProducts } from "@/lib/api/types";
+import { useInViewOnce } from "@/hooks/use-in-view";
+import type { Breakdown, Granularity, SpendOverTime, TopProducts } from "@/lib/api/types";
 
 const chartSkeleton = (className: string) => <Skeleton className={className} />;
 
@@ -32,13 +34,36 @@ type DashboardSecondaryChartsProps = {
   spendByCategory: Breakdown;
   topProducts: TopProducts;
   spendOverTime: SpendOverTime;
+  granularity: Granularity;
+  seriesRefreshing: boolean;
 };
+
+function ViewportChart({
+  pending,
+  heightClass,
+  children,
+}: {
+  pending: boolean;
+  heightClass: string;
+  children: ReactNode;
+}) {
+  const { ref, inView } = useInViewOnce();
+  return (
+    <div ref={ref}>
+      {inView && !pending ? children : <Skeleton className={`${heightClass} w-full`} />}
+    </div>
+  );
+}
 
 export function DashboardSecondaryCharts({
   spendByCategory,
   topProducts,
   spendOverTime,
+  granularity,
+  seriesRefreshing,
 }: DashboardSecondaryChartsProps) {
+  const ticketTitle = granularity === "week" ? "Ticket médio por semana" : "Ticket médio por dia";
+
   return (
     <>
       <div className="grid gap-6 lg:grid-cols-2">
@@ -47,7 +72,9 @@ export function DashboardSecondaryCharts({
             <CardTitle className="text-base">Gastos por categoria</CardTitle>
           </CardHeader>
           <CardContent>
-            <CategoryPieChart data={spendByCategory} />
+            <ViewportChart pending={seriesRefreshing} heightClass="h-[240px]">
+              <CategoryPieChart data={spendByCategory} />
+            </ViewportChart>
           </CardContent>
         </Card>
 
@@ -56,7 +83,9 @@ export function DashboardSecondaryCharts({
             <CardTitle className="text-base">Top produtos</CardTitle>
           </CardHeader>
           <CardContent>
-            <TopProductsChart data={topProducts} />
+            <ViewportChart pending={seriesRefreshing} heightClass="h-[240px]">
+              <TopProductsChart data={topProducts} />
+            </ViewportChart>
           </CardContent>
         </Card>
       </div>
@@ -67,16 +96,20 @@ export function DashboardSecondaryCharts({
             <CardTitle className="text-base">Volume de notas</CardTitle>
           </CardHeader>
           <CardContent>
-            <InvoiceVolumeChart data={spendOverTime} />
+            <ViewportChart pending={seriesRefreshing} heightClass="h-[220px]">
+              <InvoiceVolumeChart data={spendOverTime} />
+            </ViewportChart>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Ticket médio por dia</CardTitle>
+            <CardTitle className="text-base">{ticketTitle}</CardTitle>
           </CardHeader>
           <CardContent>
-            <AvgTicketChart data={spendOverTime} />
+            <ViewportChart pending={seriesRefreshing} heightClass="h-[220px]">
+              <AvgTicketChart data={spendOverTime} />
+            </ViewportChart>
           </CardContent>
         </Card>
       </div>
