@@ -5,6 +5,24 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react", "recharts"],
   },
+  async headers() {
+    return [
+      {
+        source: "/m/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Service-Worker-Allowed", value: "/m/" },
+        ],
+      },
+      {
+        source: "/m/manifest.webmanifest",
+        headers: [
+          { key: "Content-Type", value: "application/manifest+json" },
+          { key: "Cache-Control", value: "no-cache" },
+        ],
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {
@@ -14,7 +32,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  allowedDevOrigins: ['141a-2804-56c-c239-e600-a4fa-bf9e-832d-8d91.ngrok-free.app'],
+  allowedDevOrigins: ['7f01-2804-56c-c23f-2000-e900-4b5-4bc-6735.ngrok-free.app'],
   // Next.js 16 uses Turbopack in dev; webpack config is kept for production builds.
   turbopack: {
     resolveAlias: {

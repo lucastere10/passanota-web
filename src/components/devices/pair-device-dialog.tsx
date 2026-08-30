@@ -106,8 +106,8 @@ export function PairDeviceDialog({
           <div className="flex flex-col items-center gap-4">
             <PairingQr url={session.pairing_url} />
             <p className="text-center text-sm text-muted-foreground">
-              Escaneie o QR code ou abra o link no celular. Expira em{" "}
-              <span className="font-mono font-medium text-foreground">{remaining}</span>.
+              No Android, abra o link no Chrome, conecte com o PIN e toque em Instalar app. Expira
+              em <span className="font-mono font-medium text-foreground">{remaining}</span>.
             </p>
             <Button variant="outline" className="w-full" onClick={() => void copyLink()}>
               <Copy className="mr-2 h-4 w-4" />

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0c4f4a"/>
+  <text
+    x="256"
+    y="278"
+    text-anchor="middle"
+    font-family="Helvetica, Arial, sans-serif"
+    font-size="140"
+    font-weight="700"
+    fill="#fcfaf8"
+  >/N</text>
+</svg>
