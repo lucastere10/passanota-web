@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AuthShell } from "@/components/layout/auth-shell";
@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { submitInterest } from "@/lib/api/auth";
 import { cn } from "@/lib/utils";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [nome, setNome] = useState("");
@@ -118,5 +118,23 @@ export default function RegisterPage() {
         </Button>
       </form>
     </AuthShell>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <AuthShell
+          title="Solicitar acesso"
+          description="Informe seus dados e nossa equipe entrará em contato sobre a plataforma."
+          panelVariant="register"
+        >
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        </AuthShell>
+      }
+    >
+      <RegisterForm />
+    </Suspense>
   );
 }
