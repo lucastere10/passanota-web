@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowDownRight, FileText, TrendingUp } from "lucide-react";
 
+import { DemoTourTrigger } from "@/components/landing/demo-tour/demo-tour-trigger";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useMockReceiptFeed } from "@/hooks/use-mock-receipt-feed";
@@ -49,12 +50,13 @@ export function HeroSectionClient() {
             empresa está indo.
           </p>
           <div
-            className="animate-fade-in flex flex-col gap-3 sm:flex-row"
+            className="animate-fade-in flex flex-col gap-3 sm:flex-row sm:flex-wrap"
             style={{ animationDelay: "240ms" }}
           >
             <Button size="lg" render={<Link href="/register" />}>
               Solicitar acesso
             </Button>
+            <DemoTourTrigger variant="outline" size="lg" />
             <Button variant="outline" size="lg" render={<Link href="/login" />}>
               Entrar
             </Button>

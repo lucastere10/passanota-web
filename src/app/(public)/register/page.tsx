@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AuthShell } from "@/components/layout/auth-shell";
@@ -12,11 +13,19 @@ import { submitInterest } from "@/lib/api/auth";
 import { cn } from "@/lib/utils";
 
 export default function RegisterPage() {
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [nome, setNome] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    const prefilledMessage = searchParams.get("mensagem");
+    if (prefilledMessage) {
+      setMensagem(prefilledMessage);
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
