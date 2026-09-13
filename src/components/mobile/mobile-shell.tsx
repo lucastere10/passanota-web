@@ -7,6 +7,7 @@ import { Camera, FileText } from "lucide-react";
 
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { MobileSignOutButton } from "@/components/mobile/mobile-sign-out-button";
+import { PwaInstallBanner } from "@/components/pwa/pwa-install-banner";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -44,10 +45,17 @@ export function MobileShell({
   return (
     <div
       className={cn(
-        "flex flex-col bg-background",
+        "relative flex flex-col bg-background",
         hideHeader ? "h-dvh max-h-dvh overflow-hidden overscroll-none" : "min-h-dvh",
       )}
     >
+      {hideHeader ? (
+        <div className="absolute inset-x-0 top-0 z-30">
+          <PwaInstallBanner compact />
+        </div>
+      ) : (
+        <PwaInstallBanner />
+      )}
       {!hideHeader ? (
         <header className="sticky top-0 z-20 border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
           <div className="flex items-center justify-between">

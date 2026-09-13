@@ -47,7 +47,7 @@ export default function DispositivosPage() {
       <div className="space-y-6">
         <PageHeader
           title="Dispositivos"
-          description="Gerencie celulares autorizados a capturar notas fiscais."
+          description="Gerencie celulares autorizados a capturar notas fiscais. No Android, o celular pode instalar o PassaNota na tela inicial depois de conectar."
         />
 
         {selectedEmpresaId ? (

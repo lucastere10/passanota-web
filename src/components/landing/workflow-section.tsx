@@ -1,4 +1,8 @@
+"use client";
+
 import { BarChart3, Camera, FileText } from "lucide-react";
+
+import { DemoTourTrigger } from "@/components/landing/demo-tour/demo-tour-trigger";
 
 const STEPS = [
   {
@@ -48,6 +52,10 @@ export function WorkflowSection() {
               </div>
             );
           })}
+        </div>
+
+        <div className="mt-10 flex justify-center">
+          <DemoTourTrigger variant="outline">Experimente a simulação</DemoTourTrigger>
         </div>
       </div>
     </section>

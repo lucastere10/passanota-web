@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AuthShell } from "@/components/layout/auth-shell";
@@ -11,12 +12,20 @@ import { Label } from "@/components/ui/label";
 import { submitInterest } from "@/lib/api/auth";
 import { cn } from "@/lib/utils";
 
-export default function RegisterPage() {
+function RegisterForm() {
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [nome, setNome] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    const prefilledMessage = searchParams.get("mensagem");
+    if (prefilledMessage) {
+      setMensagem(prefilledMessage);
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -109,5 +118,23 @@ export default function RegisterPage() {
         </Button>
       </form>
     </AuthShell>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <AuthShell
+          title="Solicitar acesso"
+          description="Informe seus dados e nossa equipe entrará em contato sobre a plataforma."
+          panelVariant="register"
+        >
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        </AuthShell>
+      }
+    >
+      <RegisterForm />
+    </Suspense>
   );
 }
